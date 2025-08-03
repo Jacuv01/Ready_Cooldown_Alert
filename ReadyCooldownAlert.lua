@@ -1,0 +1,1 @@
+print("Ready Cooldown Alert Loaded")

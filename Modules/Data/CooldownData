@@ -1,0 +1,87 @@
+local CooldownData = {}
+local SpellData = require("Modules.Data.SpellData")
+local ItemData = require("Modules.Data.ItemData")
+local PetData = require("Modules.Data.PetData")
+
+-- Obtener datos completos de cooldown según el tipo
+function CooldownData:GetCooldownDetails(id, actionType, extraData)
+    if actionType == "spell" then
+        return self:GetSpellCooldownDetails(id)
+    elseif actionType == "item" then
+        return self:GetItemCooldownDetails(id, extraData)
+    elseif actionType == "pet" then
+        return self:GetPetCooldownDetails(id, extraData)
+    end
+    return nil
+end
+
+-- Detalles específicos de hechizo
+function CooldownData:GetSpellCooldownDetails(spellID)
+    local spellInfo = SpellData:GetSpellInfo(spellID)
+    local cooldown = SpellData:GetSpellCooldown(spellID)
+    
+    return {
+        name = spellInfo.name,
+        texture = spellInfo.texture,
+        start = cooldown.start,
+        duration = cooldown.duration,
+        enabled = cooldown.enabled,
+        type = "spell",
+        id = spellID
+    }
+end
+
+-- Detalles específicos de item
+function CooldownData:GetItemCooldownDetails(itemID, extraData)
+    local itemInfo = ItemData:GetItemInfo(itemID)
+    local cooldown = ItemData:GetItemCooldown(itemID)
+    
+    return {
+        name = itemInfo.name,
+        texture = extraData and extraData.texture or itemInfo.texture,
+        start = cooldown.start,
+        duration = cooldown.duration,
+        enabled = cooldown.enabled,
+        type = "item",
+        id = itemID
+    }
+end
+
+-- Detalles específicos de mascota
+function CooldownData:GetPetCooldownDetails(spellID, extraData)
+    local index = extraData and extraData.index
+    if not index then
+        index = PetData:GetPetActionIndexByName(C_Spell.GetSpellName(spellID))
+    end
+    
+    if index then
+        local petInfo = PetData:GetPetActionInfo(index)
+        local cooldown = PetData:GetPetActionCooldown(index)
+        
+        return {
+            name = petInfo.name,
+            texture = petInfo.texture,
+            start = cooldown.start,
+            duration = cooldown.duration,
+            enabled = cooldown.enabled,
+            type = "pet",
+            id = spellID,
+            index = index,
+            isPet = true
+        }
+    end
+    
+    return nil
+end
+
+-- Verificar si un cooldown es válido para tracking
+function CooldownData:IsValidForTracking(cooldownDetails, minDuration)
+    minDuration = minDuration or 2.0
+    
+    return cooldownDetails and 
+           cooldownDetails.enabled and cooldownDetails.enabled ~= 0 and
+           cooldownDetails.duration and cooldownDetails.duration > minDuration and
+           cooldownDetails.texture
+end
+
+return CooldownData

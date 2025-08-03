@@ -1,0 +1,9 @@
+## Interface: 100200
+## Title: Ready Cooldown Alert
+## Notes: Alerts you when your abilities are ready to use.
+## Author: Jacuv
+## Version: 1.0.0
+## SavedVariables: ReadyCooldownAlertDB
+## X-Curse-Project-ID: 
+
+ReadyCooldownAlert.lua
