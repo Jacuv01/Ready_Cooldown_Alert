@@ -115,6 +115,12 @@ function CooldownProcessor:OnUpdate(update)
                     
                     -- Si está listo para alertar
                     local remainingThreshold = ReadyCooldownAlertDB and ReadyCooldownAlertDB.remainingCooldownWhenNotified or 0
+                    
+                    -- Validar que el threshold sea mayor que 0 para evitar alertas constantes
+                    if remainingThreshold <= 0 then
+                        remainingThreshold = 0.1 -- Valor mínimo seguro
+                    end
+                    
                     if remaining <= remainingThreshold and remaining >= -1 then -- Permitir pequeña tolerancia negativa
                         local alertId = cooldownDetails.name .. "_" .. id
                         local currentTime = GetTime()

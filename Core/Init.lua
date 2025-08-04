@@ -35,7 +35,7 @@ local function InitializeDatabase()
         showSpellName = true,
         ignoredSpells = "",
         invertIgnored = false,
-        remainingCooldownWhenNotified = 3,  -- Alertar cuando faltan 3 segundos
+        remainingCooldownWhenNotified = 1.0,  -- Alertar cuando falta 1 segundo (mínimo recomendado)
         petOverlay = {1, 1, 1},
         x = nil, -- Posición será configurada por MainFrame
         y = nil

@@ -14,6 +14,7 @@ Modules\Data\SpellData.lua
 Modules\Data\ItemData.lua
 Modules\Data\PetData.lua
 Modules\Data\CooldownData.lua
+Modules\Data\AnimationData.lua
 
 # Hook System - Detectores de acciones
 Modules\Hooks\ActionHooks.lua

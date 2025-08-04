@@ -131,10 +131,20 @@ function AnimationProcessor:OnUpdate(update)
     end
     
     runtimer = runtimer + update
+    
+    -- Obtener configuración de animación seleccionada
+    local selectedAnimationId = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
     local totalTime = fadeInTime + holdTime + fadeOutTime
     
+    -- Usar AnimationData si está disponible para calcular tiempos personalizados
+    if AnimationData then
+        local animationConfig = AnimationData:GetAnimationConfig(selectedAnimationId)
+        if animationConfig then
+            totalTime = animationConfig.fadeInTime + animationConfig.holdTime + animationConfig.fadeOutTime
+        end
+    end
+    
     if runtimer > totalTime then
-
         -- Notificar finalización con uniqueId
         local completedUniqueId = currentAnimation.uniqueId
         self:NotifyUIEnd()
@@ -160,6 +170,31 @@ end
 
 -- Calcular el estado actual de la animación
 function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
+    local selectedAnimationId = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+    
+    -- Usar AnimationData si está disponible
+    if AnimationData then
+        local animationState = AnimationData:CalculateAnimationState(selectedAnimationId, currentTime, totalTime)
+        if animationState then
+            -- Aplicar configuraciones de escala e icono
+            local finalScale = iconSize * animationState.scale
+            
+            return {
+                texture = currentAnimation.texture,
+                isPet = currentAnimation.isPet,
+                name = showSpellName and currentAnimation.name or nil,
+                alpha = animationState.alpha,
+                scale = finalScale,
+                width = finalScale,
+                height = finalScale,
+                phase = animationState.phase,
+                progress = currentTime / totalTime,
+                petOverlay = currentAnimation.isPet and petOverlay or nil
+            }
+        end
+    end
+    
+    -- Fallback al comportamiento original
     local alpha = maxAlpha
     local phase = "hold"
     

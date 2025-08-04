@@ -5,9 +5,6 @@ local frame = nil
 local texture = nil
 local textFrame = nil
 
--- Estado del frame
-local isLocked = true
-
 -- Inicializar el frame principal
 function MainFrame:Initialize()
     if frame then
@@ -21,18 +18,9 @@ function MainFrame:Initialize()
     frame:SetFrameStrata("HIGH")
     frame:SetFrameLevel(100)
     
-    -- Configurar movimiento
-    frame:SetMovable(true)
-    frame:RegisterForDrag("LeftButton")
-    frame:SetScript("OnDragStart", function(self)
-        if not isLocked then
-            self:StartMoving()
-        end
-    end)
-    frame:SetScript("OnDragStop", function(self)
-        self:StopMovingOrSizing()
-        self:SavePosition()
-    end)
+    -- El frame ya no es movible por drag and drop
+    frame:SetMovable(false)
+    frame:EnableMouse(false)
     
     -- Crear textura para el icono
     texture = frame:CreateTexture(nil, "BACKGROUND")
@@ -53,32 +41,33 @@ function MainFrame:Initialize()
     frame:Hide()
 end
 
--- Guardar posición del frame
-function MainFrame:SavePosition()
-    if not frame or not ReadyCooldownAlertDB then
-        return
-    end
-    
-    local x = frame:GetLeft() + frame:GetWidth() / 2
-    local y = frame:GetBottom() + frame:GetHeight() / 2
-    
-    ReadyCooldownAlertDB.x = x
-    ReadyCooldownAlertDB.y = y
-end
-
 -- Cargar posición guardada
 function MainFrame:LoadPosition()
     if not frame or not ReadyCooldownAlertDB then
         return
     end
     
-    local x = ReadyCooldownAlertDB.x
-    local y = ReadyCooldownAlertDB.y
+    -- Usar coordenadas de los sliders si están disponibles
+    local x = ReadyCooldownAlertDB.positionX
+    local y = ReadyCooldownAlertDB.positionY
     
-    if x and y then
-        frame:ClearAllPoints()
-        frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+    -- Si no hay posición configurada, usar centro de pantalla
+    if not x then
+        x = (GetScreenWidth() or 1920) / 2
+        ReadyCooldownAlertDB.positionX = x
     end
+    if not y then
+        y = (GetScreenHeight() or 1080) / 2
+        ReadyCooldownAlertDB.positionY = y
+    end
+    
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+end
+
+-- Actualizar posición desde sliders (llamado cuando cambian los sliders)
+function MainFrame:UpdatePosition()
+    self:LoadPosition()
 end
 
 -- Manejar eventos de animación del AnimationProcessor
@@ -100,6 +89,11 @@ end
 function MainFrame:StartAnimation(animation)
     if not animation then return end
     
+    -- Asegurar que el frame esté disponible para animaciones normales
+    if not frame:IsShown() then
+        frame:Show()
+    end
+    
     -- Configurar textura
     if animation.texture then
         texture:SetTexture(animation.texture)
@@ -118,9 +112,6 @@ function MainFrame:StartAnimation(animation)
     else
         texture:SetVertexColor(1, 1, 1)
     end
-    
-    -- Mostrar frame
-    frame:Show()
 end
 
 -- Actualizar animación en curso
@@ -157,41 +148,34 @@ function MainFrame:EndAnimation()
     frame:Hide()
 end
 
--- Bloquear/Desbloquear el frame para movimiento
-function MainFrame:SetLocked(locked)
-    isLocked = locked
-    
+-- Mostrar frame para posicionamiento
+function MainFrame:ShowForPositioning()
     if not frame then
         self:Initialize()
     end
     
-    if locked then
-        frame:EnableMouse(false)
-        -- Ocultar borde de movimiento si existe
-        if frame.moveBorder then
-            frame.moveBorder:Hide()
-        end
-    else
-        frame:EnableMouse(true)
-        -- Mostrar borde de movimiento
-        if not frame.moveBorder then
-            frame.moveBorder = frame:CreateTexture(nil, "OVERLAY")
-            frame.moveBorder:SetAllPoints(frame)
-            frame.moveBorder:SetColorTexture(1, 1, 1, 0.3)
-        end
-        frame.moveBorder:Show()
-        
-        -- Mostrar frame temporalmente para posicionamiento
-        frame:Show()
-        frame:SetAlpha(0.7)
-        texture:SetTexture(135808) -- Textura de ejemplo (Pyroblast)
-        textFrame:SetText("Drag to move")
-    end
+    -- Mostrar frame con textura de ejemplo
+    frame:Show()
+    frame:SetAlpha(0.7)
+    texture:SetTexture(135808) -- Textura de ejemplo (Pyroblast)
+    textFrame:SetText("Position Preview")
+    
+    -- Actualizar posición desde sliders
+    self:UpdatePosition()
 end
 
--- Verificar si está bloqueado
-function MainFrame:IsLocked()
-    return isLocked
+-- Ocultar frame del posicionamiento
+function MainFrame:HideFromPositioning()
+    if not frame then return end
+    
+    -- Limpiar contenido
+    texture:SetTexture(nil)
+    textFrame:SetText("")
+    texture:SetVertexColor(1, 1, 1)
+    
+    -- Ocultar frame completamente
+    frame:Hide()
+    -- Nota: No modificamos el alpha aquí para no interferir con futuras animaciones
 end
 
 -- Mostrar animación de prueba
@@ -207,9 +191,9 @@ function MainFrame:TestAnimation()
     
     -- Simular actualización con valores de prueba
     local testUpdate = {
-        alpha = 0.7,
-        width = 100,
-        height = 100,
+        alpha = ReadyCooldownAlertDB and ReadyCooldownAlertDB.maxAlpha or 0.7,
+        width = ReadyCooldownAlertDB and ReadyCooldownAlertDB.iconSize or 100,
+        height = ReadyCooldownAlertDB and ReadyCooldownAlertDB.iconSize or 100,
         phase = "hold",
         progress = 0.5
     }
@@ -233,7 +217,6 @@ function MainFrame:GetFrameInfo()
         alpha = frame:GetAlpha(),
         width = frame:GetWidth(),
         height = frame:GetHeight(),
-        isLocked = isLocked,
         position = {
             x = frame:GetLeft() and (frame:GetLeft() + frame:GetWidth() / 2) or 0,
             y = frame:GetBottom() and (frame:GetBottom() + frame:GetHeight() / 2) or 0
@@ -249,7 +232,12 @@ function MainFrame:ResetPosition()
     
     frame:ClearAllPoints()
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-    self:SavePosition()
+    
+    -- Actualizar configuración
+    if ReadyCooldownAlertDB then
+        ReadyCooldownAlertDB.positionX = (GetScreenWidth() or 1920) / 2
+        ReadyCooldownAlertDB.positionY = (GetScreenHeight() or 1080) / 2
+    end
 end
 
 -- Exportar globalmente para WoW addon system

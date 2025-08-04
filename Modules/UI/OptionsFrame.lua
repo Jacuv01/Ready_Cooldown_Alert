@@ -5,6 +5,10 @@ local optionsFrame = nil
 local sliders = {}
 local checkboxes = {}
 local editBoxes = {}
+local dropdowns = {}
+
+-- Estado de edición de posición
+local isEditingPosition = false
 
 -- Configuración de sliders
 local sliderConfigs = {
@@ -59,10 +63,28 @@ local sliderConfigs = {
     {
         key = "remainingCooldownWhenNotified",
         label = "Alert When (seconds left)",
-        min = 0,
+        min = 0.1,
         max = 10,
         step = 0.1,
-        default = 0
+        default = 1.0
+    },
+    {
+        key = "positionX",
+        label = "Position X",
+        min = 0,
+        max = 0, -- Se calculará dinámicamente
+        step = 1,
+        default = 0, -- Se calculará como centro de pantalla
+        isDynamic = true
+    },
+    {
+        key = "positionY", 
+        label = "Position Y",
+        min = 0,
+        max = 0, -- Se calculará dinámicamente
+        step = 1,
+        default = 0, -- Se calculará como centro de pantalla
+        isDynamic = true
     }
 }
 
@@ -73,8 +95,8 @@ function OptionsFrame:Initialize()
     end
     
     -- Crear frame principal
-    optionsFrame = CreateFrame("Frame", "ReadyCooldownAlertOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
-    optionsFrame:SetSize(400, 600)
+    optionsFrame = CreateFrame("MessageFrame", "ReadyCooldownAlertOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
+    optionsFrame:SetSize(400, 900)
     optionsFrame:SetPoint("CENTER")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetMovable(true)
@@ -98,11 +120,18 @@ function OptionsFrame:Initialize()
     -- Crear edit boxes
     self:CreateEditBoxes()
     
+    -- Crear dropdowns
+    self:CreateDropdowns()
+    
     -- Crear botones
     self:CreateButtons()
     
+    -- Inicializar estado de edición de posición
+    isEditingPosition = false
+    self:SetPositionSlidersVisible(false)
+    
     -- Inicialmente oculto
-    optionsFrame:Hide()
+    --optionsFrame:Hide()
 end
 
 -- Crear sliders de configuración
@@ -112,37 +141,91 @@ function OptionsFrame:CreateSliders()
     for i, config in ipairs(sliderConfigs) do
         local slider = CreateFrame("Slider", "RCASlider" .. i, optionsFrame, "OptionsSliderTemplate")
         slider:SetPoint("TOPLEFT", 20, yOffset)
-        slider:SetMinMaxValues(config.min, config.max)
+        
+        -- Configurar valores dinámicos para posición
+        local minVal = config.min
+        local maxVal = config.max
+        local defaultVal = config.default
+        
+        if config.isDynamic then
+            if config.key == "positionX" then
+                maxVal = GetScreenWidth() or 1920
+                defaultVal = maxVal / 2 -- Centro de pantalla
+            elseif config.key == "positionY" then
+                maxVal = GetScreenHeight() or 1080
+                defaultVal = maxVal / 2 -- Centro de pantalla
+            end
+        end
+        
+        slider:SetMinMaxValues(minVal, maxVal)
         slider:SetValueStep(config.step)
         slider:SetObeyStepOnDrag(true)
         slider:SetWidth(200)
         
         -- Texto del slider
         slider.Text:SetText(config.label)
-        slider.Low:SetText(config.min)
-        slider.High:SetText(config.max)
+        slider.Low:SetText(math.floor(minVal))
+        slider.High:SetText(math.floor(maxVal))
         
         -- Valor actual
         slider.valueText = slider:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         slider.valueText:SetPoint("TOP", slider, "BOTTOM", 0, 0)
         
-        -- Configurar valor
-        local currentValue = (ReadyCooldownAlertDB and ReadyCooldownAlertDB[config.key]) or config.default
+        -- Configurar valor (usar defaultVal calculado para posiciones)
+        local currentValue = (ReadyCooldownAlertDB and ReadyCooldownAlertDB[config.key]) or defaultVal
         slider:SetValue(currentValue)
-        slider.valueText:SetText(string.format("%.1f", currentValue))
+        
+        -- Formatear texto según el tipo de slider
+        if config.key == "positionX" or config.key == "positionY" then
+            slider.valueText:SetText(tostring(math.floor(currentValue)))
+        else
+            slider.valueText:SetText(string.format("%.1f", currentValue))
+        end
         
         -- Script de cambio
         slider:SetScript("OnValueChanged", function(self, value)
             if ReadyCooldownAlertDB then
                 ReadyCooldownAlertDB[config.key] = value
-                self.valueText:SetText(string.format("%.1f", value))
+                
+                -- Formatear texto según el tipo
+                if config.key == "positionX" or config.key == "positionY" then
+                    self.valueText:SetText(tostring(math.floor(value)))
+                else
+                    self.valueText:SetText(string.format("%.1f", value))
+                end
                 
                 -- Notificar cambio de configuración
                 OptionsFrame:OnConfigChanged(config.key, value)
             end
         end)
         
+        -- Habilitar scroll del mouse
+        slider:EnableMouseWheel(true)
+        slider:SetScript("OnMouseWheel", function(self, delta)
+            local currentValue = self:GetValue()
+            local step = config.step
+            
+            -- Para sliders de posición, usar pasos más grandes
+            if config.key == "positionX" or config.key == "positionY" then
+                step = 5 -- Mover 5 píxeles por scroll
+            end
+            
+            local newValue = currentValue + (delta * step)
+            
+            -- Aplicar límites
+            local minVal, maxVal = self:GetMinMaxValues()
+            newValue = math.max(minVal, math.min(maxVal, newValue))
+            
+            self:SetValue(newValue)
+        end)
+        
         sliders[config.key] = slider
+        
+        -- Ocultar sliders de posición por defecto
+        if config.key == "positionX" or config.key == "positionY" then
+            slider:Hide()
+        end
+        
         yOffset = yOffset - 60
     end
 end
@@ -224,11 +307,70 @@ function OptionsFrame:CreateEditBoxes()
     editBoxes.ignoredSpells = ignoredEditBox
 end
 
+-- Crear dropdowns
+function OptionsFrame:CreateDropdowns()
+    local yOffset = -40 - (#sliderConfigs * 60) - 120
+    
+    -- Label para animación
+    local animationLabel = optionsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    animationLabel:SetPoint("TOPLEFT", 20, yOffset)
+    animationLabel:SetText("Animation Type:")
+    
+    -- Crear dropdown para tipo de animación
+    local animationDropdown = CreateFrame("Frame", "RCAAnimationDropdown", optionsFrame, "UIDropDownMenuTemplate")
+    animationDropdown:SetPoint("TOPLEFT", 20, yOffset - 25)
+    UIDropDownMenu_SetWidth(animationDropdown, 200)
+    UIDropDownMenu_SetText(animationDropdown, "Select Animation")
+    
+    -- Función para poblar el dropdown
+    local function InitializeAnimationDropdown(self, level)
+        if not AnimationData then
+            return
+        end
+        
+        local animationList = AnimationData:GetAnimationList()
+        for _, animation in ipairs(animationList) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = animation.text
+            info.value = animation.value
+            info.tooltipTitle = animation.text
+            info.tooltipText = animation.tooltip
+            info.func = function()
+                UIDropDownMenu_SetSelectedValue(animationDropdown, animation.value)
+                UIDropDownMenu_SetText(animationDropdown, animation.text)
+                
+                -- Guardar selección
+                if ReadyCooldownAlertDB then
+                    ReadyCooldownAlertDB.selectedAnimation = animation.value
+                    OptionsFrame:OnConfigChanged("selectedAnimation", animation.value)
+                end
+            end
+            UIDropDownMenu_AddButton(info, level)
+        end
+    end
+    
+    UIDropDownMenu_Initialize(animationDropdown, InitializeAnimationDropdown)
+    
+    -- Configurar valor inicial
+    local selectedAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+    UIDropDownMenu_SetSelectedValue(animationDropdown, selectedAnimation)
+    
+    -- Obtener el nombre de la animación para mostrar
+    if AnimationData then
+        local animationData = AnimationData:GetAnimation(selectedAnimation)
+        if animationData then
+            UIDropDownMenu_SetText(animationDropdown, animationData.name)
+        end
+    end
+    
+    dropdowns.animationType = animationDropdown
+end
+
 -- Crear botones
 function OptionsFrame:CreateButtons()
     local buttonHeight = 25
     local buttonWidth = 80
-    local yOffset = -550
+    local yOffset = -650
     
     -- Botón Test
     local testButton = CreateFrame("Button", "RCATestButton", optionsFrame, "GameMenuButtonTemplate")
@@ -273,6 +415,32 @@ function OptionsFrame:CreateButtons()
     sliders.closeButton = closeButton
 end
 
+-- Mostrar/Ocultar sliders de posición
+function OptionsFrame:SetPositionSlidersVisible(visible)
+    if sliders.positionX then
+        if visible then
+            sliders.positionX:Show()
+        else
+            sliders.positionX:Hide()
+        end
+    end
+    
+    if sliders.positionY then
+        if visible then
+            sliders.positionY:Show()
+        else
+            sliders.positionY:Hide()
+        end
+    end
+    
+    isEditingPosition = visible
+end
+
+-- Verificar si está en modo de edición de posición
+function OptionsFrame:IsEditingPosition()
+    return isEditingPosition
+end
+
 -- Mostrar/Ocultar panel de opciones
 function OptionsFrame:Toggle()
     if not optionsFrame then
@@ -301,10 +469,30 @@ function OptionsFrame:RefreshValues()
             end
             
             if config then
-                local value = (ReadyCooldownAlertDB and ReadyCooldownAlertDB[config.key]) or config.default
+                -- Recalcular valores dinámicos
+                local defaultVal = config.default
+                if config.isDynamic then
+                    if config.key == "positionX" then
+                        defaultVal = (GetScreenWidth() or 1920) / 2
+                        -- Actualizar límites del slider también
+                        slider:SetMinMaxValues(0, GetScreenWidth() or 1920)
+                        slider.High:SetText(tostring(math.floor(GetScreenWidth() or 1920)))
+                    elseif config.key == "positionY" then
+                        defaultVal = (GetScreenHeight() or 1080) / 2
+                        -- Actualizar límites del slider también
+                        slider:SetMinMaxValues(0, GetScreenHeight() or 1080)
+                        slider.High:SetText(tostring(math.floor(GetScreenHeight() or 1080)))
+                    end
+                end
+                
+                local value = (ReadyCooldownAlertDB and ReadyCooldownAlertDB[config.key]) or defaultVal
                 slider:SetValue(value)
                 if slider.valueText then
-                    slider.valueText:SetText(string.format("%.1f", value))
+                    if config.key == "positionX" or config.key == "positionY" then
+                        slider.valueText:SetText(tostring(math.floor(value)))
+                    else
+                        slider.valueText:SetText(string.format("%.1f", value))
+                    end
                 end
             end
         end
@@ -327,16 +515,50 @@ function OptionsFrame:RefreshValues()
         local ignoredSpells = ReadyCooldownAlertDB and ReadyCooldownAlertDB.ignoredSpells or ""
         editBoxes.ignoredSpells:SetText(ignoredSpells)
     end
+    
+    -- Actualizar dropdowns
+    if dropdowns.animationType then
+        local selectedAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+        UIDropDownMenu_SetSelectedValue(dropdowns.animationType, selectedAnimation)
+        
+        -- Actualizar texto mostrado
+        if AnimationData then
+            local animationData = AnimationData:GetAnimation(selectedAnimation)
+            if animationData then
+                UIDropDownMenu_SetText(dropdowns.animationType, animationData.name)
+            end
+        end
+    end
 end
 
 -- Callback cuando cambia la configuración
 function OptionsFrame:OnConfigChanged(key, value)
+    -- Validación especial para remainingCooldownWhenNotified
+    if key == "remainingCooldownWhenNotified" and value <= 0 then
+        -- Corregir valor a mínimo permitido
+        ReadyCooldownAlertDB.remainingCooldownWhenNotified = 0.1
+        if sliders[key] then
+            sliders[key]:SetValue(0.1)
+        end
+        return
+    end
+    
     -- Notificar a otros módulos que la configuración cambió
     if AnimationProcessor then
         AnimationProcessor:RefreshConfig()
     end
     if FilterProcessor then
         FilterProcessor:RefreshFilters()
+    end
+    
+    -- Actualizar posición del MainFrame si cambió positionX o positionY
+    if (key == "positionX" or key == "positionY") and MainFrame then
+        MainFrame:UpdatePosition()
+        
+        -- Si estamos en modo de edición, asegurar que el icono siga visible
+        if isEditingPosition then
+            MainFrame:ShowForPositioning()
+        end
     end
 end
 
@@ -351,13 +573,28 @@ end
 
 -- Manejar click en botón Unlock/Lock
 function OptionsFrame:OnUnlockClicked()
-    if MainFrame then
-        local isLocked = MainFrame:IsLocked()
-        MainFrame:SetLocked(not isLocked)
+    local button = sliders.unlockButton
+    if not button then return end
+    
+    -- Cambiar estado de edición
+    isEditingPosition = not isEditingPosition
+    
+    -- Actualizar texto del botón
+    if isEditingPosition then
+        button:SetText("Lock")
+        self:SetPositionSlidersVisible(true)
         
-        local button = sliders.unlockButton
-        if button then
-            button:SetText(isLocked and "Lock" or "Unlock")
+        -- Mostrar icono para posicionamiento
+        if MainFrame then
+            MainFrame:ShowForPositioning()
+        end
+    else
+        button:SetText("Unlock")
+        self:SetPositionSlidersVisible(false)
+        
+        -- Ocultar icono
+        if MainFrame then
+            MainFrame:HideFromPositioning()
         end
     end
 end
@@ -370,12 +607,27 @@ function OptionsFrame:OnDefaultsClicked()
     end
     
     for _, config in ipairs(sliderConfigs) do
-        ReadyCooldownAlertDB[config.key] = config.default
+        local defaultVal = config.default
+        -- Calcular valores dinámicos para posición
+        if config.isDynamic then
+            if config.key == "positionX" then
+                defaultVal = (GetScreenWidth() or 1920) / 2
+            elseif config.key == "positionY" then
+                defaultVal = (GetScreenHeight() or 1080) / 2
+            end
+        end
+        ReadyCooldownAlertDB[config.key] = defaultVal
     end
     
     ReadyCooldownAlertDB.showSpellName = true
     ReadyCooldownAlertDB.invertIgnored = false
     ReadyCooldownAlertDB.ignoredSpells = ""
+    ReadyCooldownAlertDB.selectedAnimation = "pulse"
+    
+    -- Validar que remainingCooldownWhenNotified no sea cero
+    if ReadyCooldownAlertDB.remainingCooldownWhenNotified and ReadyCooldownAlertDB.remainingCooldownWhenNotified <= 0 then
+        ReadyCooldownAlertDB.remainingCooldownWhenNotified = 1.0
+    end
     
     -- Actualizar interfaz
     self:RefreshValues()
