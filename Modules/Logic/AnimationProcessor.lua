@@ -1,0 +1,254 @@
+local AnimationProcessor = {}
+
+-- Estado de animaciones
+local currentAnimation = nil
+local animationQueue = {}
+
+-- Configuración de animación (se carga desde SavedVariables)
+local fadeInTime = 0.3
+local fadeOutTime = 0.7
+local maxAlpha = 0.7
+local animScale = 1.5
+local iconSize = 75
+local holdTime = 0
+local showSpellName = true
+local petOverlay = {1, 1, 1}
+
+-- Variables de timing
+local runtimer = 0
+
+-- Callbacks para actualizar UI
+AnimationProcessor.uiCallbacks = {}
+AnimationProcessor.completionCallbacks = {}
+
+-- Registrar callback para actualizaciones de UI
+function AnimationProcessor:RegisterUICallback(callback)
+    table.insert(self.uiCallbacks, callback)
+end
+
+-- Registrar callback para cuando se completa una animación
+function AnimationProcessor:RegisterCompletionCallback(callback)
+    table.insert(self.completionCallbacks, callback)
+end
+
+-- Actualizar configuración desde SavedVariables
+function AnimationProcessor:RefreshConfig()
+    if ReadyCooldownAlertDB then
+        fadeInTime = ReadyCooldownAlertDB.fadeInTime or 0.3
+        fadeOutTime = ReadyCooldownAlertDB.fadeOutTime or 0.7
+        maxAlpha = ReadyCooldownAlertDB.maxAlpha or 0.7
+        animScale = ReadyCooldownAlertDB.animScale or 1.5
+        iconSize = ReadyCooldownAlertDB.iconSize or 75
+        holdTime = ReadyCooldownAlertDB.holdTime or 0
+        showSpellName = ReadyCooldownAlertDB.showSpellName ~= false
+        petOverlay = ReadyCooldownAlertDB.petOverlay or {1, 1, 1}
+    end
+end
+
+-- Añadir animación a la cola
+function AnimationProcessor:QueueAnimation(texture, isPet, name, uniqueId)
+    
+    local animation = {
+        texture = texture,
+        isPet = isPet,
+        name = name,
+        uniqueId = uniqueId,
+        timestamp = GetTime()
+    }
+    
+    table.insert(animationQueue, animation)
+    
+    -- Iniciar procesamiento si no hay animación actual
+    if not currentAnimation then
+        self:StartNextAnimation()
+    end
+end
+
+-- Iniciar la siguiente animación en la cola
+function AnimationProcessor:StartNextAnimation()
+    
+    if #animationQueue > 0 then
+        currentAnimation = table.remove(animationQueue, 1)
+        runtimer = 0
+        
+        -- Notificar a la UI que inicie la animación
+        self:NotifyUIStart(currentAnimation)
+        
+        -- Iniciar OnUpdate
+        self:StartOnUpdate()
+    else
+        currentAnimation = nil
+        self:StopOnUpdate()
+    end
+end
+
+-- Notificar a la UI que inicie una animación
+function AnimationProcessor:NotifyUIStart(animation)
+    for _, callback in ipairs(self.uiCallbacks) do
+        callback("start", animation)
+    end
+end
+
+-- Notificar a la UI de actualización de animación
+function AnimationProcessor:NotifyUIUpdate(animationData)
+    for _, callback in ipairs(self.uiCallbacks) do
+        callback("update", animationData)
+    end
+end
+
+-- Notificar a la UI que termine la animación
+function AnimationProcessor:NotifyUIEnd()
+    for _, callback in ipairs(self.uiCallbacks) do
+        callback("end", nil)
+    end
+end
+
+-- Iniciar motor OnUpdate
+function AnimationProcessor:StartOnUpdate()
+    if not self.frame then
+        self.frame = CreateFrame("Frame")
+    end
+    
+    if not self.frame:GetScript("OnUpdate") then
+        self.frame:SetScript("OnUpdate", function(_, update)
+            self:OnUpdate(update)
+        end)
+    end
+end
+
+-- Detener motor OnUpdate
+function AnimationProcessor:StopOnUpdate()
+    if self.frame then
+        self.frame:SetScript("OnUpdate", nil)
+    end
+end
+
+-- Motor de animación
+function AnimationProcessor:OnUpdate(update)
+    if not currentAnimation then
+        self:StartNextAnimation()
+        return
+    end
+    
+    runtimer = runtimer + update
+    local totalTime = fadeInTime + holdTime + fadeOutTime
+    
+    if runtimer > totalTime then
+
+        -- Notificar finalización con uniqueId
+        local completedUniqueId = currentAnimation.uniqueId
+        self:NotifyUIEnd()
+        
+        -- Llamar callbacks de finalización
+        if completedUniqueId then
+            for _, callback in ipairs(self.completionCallbacks) do
+                callback(completedUniqueId)
+            end
+        end
+        
+        currentAnimation = nil
+        runtimer = 0
+        
+        -- Iniciar siguiente animación
+        self:StartNextAnimation()
+    else
+        -- Calcular estado actual de la animación
+        local animationData = self:CalculateAnimationState(runtimer, totalTime)
+        self:NotifyUIUpdate(animationData)
+    end
+end
+
+-- Calcular el estado actual de la animación
+function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
+    local alpha = maxAlpha
+    local phase = "hold"
+    
+    if currentTime < fadeInTime then
+        -- Fase: Fade In
+        alpha = maxAlpha * (currentTime / fadeInTime)
+        phase = "fadeIn"
+    elseif currentTime >= fadeInTime + holdTime then
+        -- Fase: Fade Out
+        alpha = maxAlpha - (maxAlpha * ((currentTime - holdTime - fadeInTime) / fadeOutTime))
+        phase = "fadeOut"
+    end
+    -- Fase Hold: alpha = maxAlpha (sin cambios)
+    
+    -- Calcular escala progresiva
+    local scale = iconSize + (iconSize * ((animScale - 1) * (currentTime / totalTime)))
+    
+    return {
+        texture = currentAnimation.texture,
+        isPet = currentAnimation.isPet,
+        name = showSpellName and currentAnimation.name or nil,
+        alpha = alpha,
+        scale = scale,
+        width = scale,
+        height = scale,
+        phase = phase,
+        progress = currentTime / totalTime,
+        petOverlay = currentAnimation.isPet and petOverlay or nil
+    }
+end
+
+-- Verificar si hay una animación activa para un nombre específico
+function AnimationProcessor:IsAnimatingSpellName(name)
+    if currentAnimation and currentAnimation.name == name then
+        return true
+    end
+    
+    for _, animation in ipairs(animationQueue) do
+        if animation.name == name then
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- Limpiar todas las animaciones
+function AnimationProcessor:ClearAll()
+    currentAnimation = nil
+    animationQueue = {}
+    runtimer = 0
+    self:StopOnUpdate()
+    self:NotifyUIEnd()
+end
+
+-- Obtener estado actual
+function AnimationProcessor:GetStatus()
+    return {
+        hasCurrentAnimation = currentAnimation ~= nil,
+        queueLength = #animationQueue,
+        currentAnimationName = currentAnimation and currentAnimation.name or nil,
+        isOnUpdateActive = self.frame and self.frame:GetScript("OnUpdate") ~= nil,
+        currentTime = runtimer,
+        totalTime = fadeInTime + holdTime + fadeOutTime
+    }
+end
+
+-- Forzar animación de prueba
+function AnimationProcessor:TestAnimation()
+    -- Usar textura de Pyroblast como ejemplo
+    local testTexture = 135808
+    self:QueueAnimation(testTexture, false, "Test Animation")
+end
+
+-- Obtener configuración actual
+function AnimationProcessor:GetConfig()
+    return {
+        fadeInTime = fadeInTime,
+        fadeOutTime = fadeOutTime,
+        maxAlpha = maxAlpha,
+        animScale = animScale,
+        iconSize = iconSize,
+        holdTime = holdTime,
+        showSpellName = showSpellName,
+        petOverlay = petOverlay
+    }
+end
+
+-- Exportar globalmente para WoW addon system
+_G.AnimationProcessor = AnimationProcessor
+
+return AnimationProcessor

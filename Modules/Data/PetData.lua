@@ -56,4 +56,7 @@ function PetData:GetAllPetActions()
     return actions
 end
 
+-- Exportar globalmente para WoW addon system
+_G.PetData = PetData
+
 return PetData

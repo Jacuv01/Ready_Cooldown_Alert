@@ -1,4 +1,4 @@
-## Interface: 100200
+## Interface: 110002
 ## Title: Ready Cooldown Alert
 ## Notes: Alerts you when your abilities are ready to use.
 ## Author: Jacuv
@@ -6,4 +6,30 @@
 ## SavedVariables: ReadyCooldownAlertDB
 ## X-Curse-Project-ID: 
 
-ReadyCooldownAlert.lua
+# Core System
+Core\Init.lua
+
+# Data Layer - APIs del juego
+Modules\Data\SpellData.lua
+Modules\Data\ItemData.lua
+Modules\Data\PetData.lua
+Modules\Data\CooldownData.lua
+
+# Hook System - Detectores de acciones
+Modules\Hooks\ActionHooks.lua
+Modules\Hooks\SpellHooks.lua
+Modules\Hooks\CombatHooks.lua
+Modules\Hooks\HookManager.lua
+
+# Logic Layer - Procesamiento
+Modules\Logic\FilterProcessor.lua
+Modules\Logic\AnimationProcessor.lua
+Modules\Logic\CooldownProcessor.lua
+Modules\Logic\LogicManager.lua
+
+# UI Layer - Interfaz
+Modules\UI\MainFrame.lua
+Modules\UI\OptionsFrame.lua
+
+# Test module (optional)
+test_structure.lua

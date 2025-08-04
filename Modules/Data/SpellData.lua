@@ -34,4 +34,7 @@ function SpellData:GetRemainingCooldown(spellID)
     return 0
 end
 
+-- Exportar globalmente para WoW addon system
+_G.SpellData = SpellData
+
 return SpellData
