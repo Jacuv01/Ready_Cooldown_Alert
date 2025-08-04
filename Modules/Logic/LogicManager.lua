@@ -6,6 +6,12 @@ function LogicManager:Initialize()
     local CooldownProcessor = _G.CooldownProcessor
     local FilterProcessor = _G.FilterProcessor
     local AnimationProcessor = _G.AnimationProcessor
+    local OptionsLogic = _G.OptionsLogic
+    
+    -- Inicializar OptionsLogic
+    if OptionsLogic then
+        OptionsLogic:InitializeDefaultConfig()
+    end
     
     -- Inicializar FilterProcessor
     if FilterProcessor then

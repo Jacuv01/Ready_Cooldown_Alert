@@ -26,6 +26,7 @@ Modules\Hooks\HookManager.lua
 Modules\Logic\FilterProcessor.lua
 Modules\Logic\AnimationProcessor.lua
 Modules\Logic\CooldownProcessor.lua
+Modules\Logic\OptionsLogic.lua
 Modules\Logic\LogicManager.lua
 
 # UI Layer - Interfaz

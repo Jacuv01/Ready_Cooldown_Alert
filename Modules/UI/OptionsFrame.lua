@@ -10,84 +10,6 @@ local dropdowns = {}
 -- Estado de edición de posición
 local isEditingPosition = false
 
--- Configuración de sliders
-local sliderConfigs = {
-    {
-        key = "fadeInTime",
-        label = "Fade In Time",
-        min = 0,
-        max = 2,
-        step = 0.1,
-        default = 0.3
-    },
-    {
-        key = "fadeOutTime", 
-        label = "Fade Out Time",
-        min = 0,
-        max = 2,
-        step = 0.1,
-        default = 0.7
-    },
-    {
-        key = "maxAlpha",
-        label = "Max Alpha",
-        min = 0,
-        max = 1,
-        step = 0.1,
-        default = 0.7
-    },
-    {
-        key = "animScale",
-        label = "Animation Scale",
-        min = 0.5,
-        max = 3,
-        step = 0.1,
-        default = 1.5
-    },
-    {
-        key = "iconSize",
-        label = "Icon Size",
-        min = 32,
-        max = 256,
-        step = 1,
-        default = 75
-    },
-    {
-        key = "holdTime",
-        label = "Hold Time",
-        min = 0,
-        max = 5,
-        step = 0.1,
-        default = 0
-    },
-    {
-        key = "remainingCooldownWhenNotified",
-        label = "Alert When (seconds left)",
-        min = 0.1,
-        max = 10,
-        step = 0.1,
-        default = 1.0
-    },
-    {
-        key = "positionX",
-        label = "Position X",
-        min = 0,
-        max = 0, -- Se calculará dinámicamente
-        step = 1,
-        default = 0, -- Se calculará como centro de pantalla
-        isDynamic = true
-    },
-    {
-        key = "positionY", 
-        label = "Position Y",
-        min = 0,
-        max = 0, -- Se calculará dinámicamente
-        step = 1,
-        default = 0, -- Se calculará como centro de pantalla
-        isDynamic = true
-    }
-}
-
 -- Inicializar panel de opciones
 function OptionsFrame:Initialize()
     if optionsFrame then
@@ -108,8 +30,12 @@ function OptionsFrame:Initialize()
     -- Título
     optionsFrame.title = optionsFrame:CreateFontString(nil, "OVERLAY")
     optionsFrame.title:SetFontObject("GameFontHighlight")
-    optionsFrame.title:SetPoint("LEFT", optionsFrame.TitleBg, "LEFT", 5, 0)
+    optionsFrame.title:SetPoint("CENTER", optionsFrame.TitleBg, "CENTER", 0, 0)
     optionsFrame.title:SetText("Ready Cooldown Alert - Options")
+    optionsFrame.title:SetTextColor(1, 0.82, 0, 1) -- Color dorado
+
+        -- Crear dropdowns
+    self:CreateDropdowns()
     
     -- Crear sliders
     self:CreateSliders()
@@ -120,8 +46,7 @@ function OptionsFrame:Initialize()
     -- Crear edit boxes
     self:CreateEditBoxes()
     
-    -- Crear dropdowns
-    self:CreateDropdowns()
+
     
     -- Crear botones
     self:CreateButtons()
@@ -136,26 +61,15 @@ end
 
 -- Crear sliders de configuración
 function OptionsFrame:CreateSliders()
-    local yOffset = -40
+    local yOffset = -200
+    local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
     
     for i, config in ipairs(sliderConfigs) do
         local slider = CreateFrame("Slider", "RCASlider" .. i, optionsFrame, "OptionsSliderTemplate")
         slider:SetPoint("TOPLEFT", 20, yOffset)
         
-        -- Configurar valores dinámicos para posición
-        local minVal = config.min
-        local maxVal = config.max
-        local defaultVal = config.default
-        
-        if config.isDynamic then
-            if config.key == "positionX" then
-                maxVal = GetScreenWidth() or 1920
-                defaultVal = maxVal / 2 -- Centro de pantalla
-            elseif config.key == "positionY" then
-                maxVal = GetScreenHeight() or 1080
-                defaultVal = maxVal / 2 -- Centro de pantalla
-            end
-        end
+        -- Configurar valores dinámicos usando OptionsLogic
+        local minVal, maxVal, defaultVal = _G.OptionsLogic:CalculateDynamicValues(config)
         
         slider:SetMinMaxValues(minVal, maxVal)
         slider:SetValueStep(config.step)
@@ -171,31 +85,25 @@ function OptionsFrame:CreateSliders()
         slider.valueText = slider:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         slider.valueText:SetPoint("TOP", slider, "BOTTOM", 0, 0)
         
-        -- Configurar valor (usar defaultVal calculado para posiciones)
-        local currentValue = (ReadyCooldownAlertDB and ReadyCooldownAlertDB[config.key]) or defaultVal
+        -- Configurar valor actual
+        local currentValue = _G.OptionsLogic:GetConfigValue(config.key)
         slider:SetValue(currentValue)
         
-        -- Formatear texto según el tipo de slider
-        if config.key == "positionX" or config.key == "positionY" then
-            slider.valueText:SetText(tostring(math.floor(currentValue)))
-        else
-            slider.valueText:SetText(string.format("%.1f", currentValue))
-        end
+        -- Formatear texto usando OptionsLogic
+        slider.valueText:SetText(_G.OptionsLogic:FormatSliderValue(config.key, currentValue))
         
         -- Script de cambio
         slider:SetScript("OnValueChanged", function(self, value)
-            if ReadyCooldownAlertDB then
-                ReadyCooldownAlertDB[config.key] = value
+            if _G.OptionsLogic then
+                local validatedValue, wasModified = _G.OptionsLogic:OnConfigChanged(config.key, value)
                 
-                -- Formatear texto según el tipo
-                if config.key == "positionX" or config.key == "positionY" then
-                    self.valueText:SetText(tostring(math.floor(value)))
-                else
-                    self.valueText:SetText(string.format("%.1f", value))
+                -- Si el valor fue modificado, actualizar el slider
+                if wasModified then
+                    self:SetValue(validatedValue)
                 end
                 
-                -- Notificar cambio de configuración
-                OptionsFrame:OnConfigChanged(config.key, value)
+                -- Actualizar texto mostrado
+                self.valueText:SetText(_G.OptionsLogic:FormatSliderValue(config.key, validatedValue))
             end
         end)
         
@@ -203,13 +111,7 @@ function OptionsFrame:CreateSliders()
         slider:EnableMouseWheel(true)
         slider:SetScript("OnMouseWheel", function(self, delta)
             local currentValue = self:GetValue()
-            local step = config.step
-            
-            -- Para sliders de posición, usar pasos más grandes
-            if config.key == "positionX" or config.key == "positionY" then
-                step = 5 -- Mover 5 píxeles por scroll
-            end
-            
+            local step = _G.OptionsLogic and _G.OptionsLogic:GetMouseWheelStep(config.key) or 0.1
             local newValue = currentValue + (delta * step)
             
             -- Aplicar límites
@@ -221,8 +123,8 @@ function OptionsFrame:CreateSliders()
         
         sliders[config.key] = slider
         
-        -- Ocultar sliders de posición por defecto
-        if config.key == "positionX" or config.key == "positionY" then
+        -- Ocultar sliders de posición por defecto usando OptionsLogic
+        if _G.OptionsLogic and _G.OptionsLogic:ShouldSliderBeHidden(config.key) then
             slider:Hide()
         end
         
@@ -232,6 +134,7 @@ end
 
 -- Crear checkboxes
 function OptionsFrame:CreateCheckboxes()
+    local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
     local yOffset = -40 - (#sliderConfigs * 60)
     
     -- Checkbox para mostrar nombres de hechizos
@@ -274,6 +177,7 @@ end
 
 -- Crear edit boxes
 function OptionsFrame:CreateEditBoxes()
+    local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
     local yOffset = -40 - (#sliderConfigs * 60) - 80
     
     -- Label para ignored spells
@@ -307,9 +211,41 @@ function OptionsFrame:CreateEditBoxes()
     editBoxes.ignoredSpells = ignoredEditBox
 end
 
+-- Función para poblar el dropdown de animaciones
+local function InitializeAnimationDropdown(self, level)
+    if not AnimationData then
+        return
+    end
+    
+    local animationList = AnimationData:GetAnimationList()
+    for _, animation in ipairs(animationList) do
+        local info = UIDropDownMenu_CreateInfo()
+        info.text = animation.text
+        info.value = animation.value
+        info.tooltipTitle = animation.text
+        info.tooltipText = animation.tooltip
+        info.func = function()
+            UIDropDownMenu_SetSelectedValue(dropdowns.animationType, animation.value)
+            UIDropDownMenu_SetText(dropdowns.animationType, animation.text)
+            
+            -- Guardar selección
+            if ReadyCooldownAlertDB then
+                ReadyCooldownAlertDB.selectedAnimation = animation.value
+                OptionsFrame:OnConfigChanged("selectedAnimation", animation.value)
+            end
+        end
+        UIDropDownMenu_AddButton(info, level)
+    end
+end
+
 -- Crear dropdowns
 function OptionsFrame:CreateDropdowns()
-    local yOffset = -40 - (#sliderConfigs * 60) - 120
+    if not optionsFrame then
+        return
+    end
+    
+    local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
+    local yOffset = -40
     
     -- Label para animación
     local animationLabel = optionsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -318,37 +254,11 @@ function OptionsFrame:CreateDropdowns()
     
     -- Crear dropdown para tipo de animación
     local animationDropdown = CreateFrame("Frame", "RCAAnimationDropdown", optionsFrame, "UIDropDownMenuTemplate")
-    animationDropdown:SetPoint("TOPLEFT", 20, yOffset - 25)
+    animationDropdown:SetPoint("LEFT", animationLabel, "RIGHT", 0, 0)
     UIDropDownMenu_SetWidth(animationDropdown, 200)
     UIDropDownMenu_SetText(animationDropdown, "Select Animation")
     
-    -- Función para poblar el dropdown
-    local function InitializeAnimationDropdown(self, level)
-        if not AnimationData then
-            return
-        end
-        
-        local animationList = AnimationData:GetAnimationList()
-        for _, animation in ipairs(animationList) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = animation.text
-            info.value = animation.value
-            info.tooltipTitle = animation.text
-            info.tooltipText = animation.tooltip
-            info.func = function()
-                UIDropDownMenu_SetSelectedValue(animationDropdown, animation.value)
-                UIDropDownMenu_SetText(animationDropdown, animation.text)
-                
-                -- Guardar selección
-                if ReadyCooldownAlertDB then
-                    ReadyCooldownAlertDB.selectedAnimation = animation.value
-                    OptionsFrame:OnConfigChanged("selectedAnimation", animation.value)
-                end
-            end
-            UIDropDownMenu_AddButton(info, level)
-        end
-    end
-    
+    -- Inicializar dropdown con la función externa
     UIDropDownMenu_Initialize(animationDropdown, InitializeAnimationDropdown)
     
     -- Configurar valor inicial
@@ -457,6 +367,8 @@ end
 
 -- Actualizar valores en la interfaz
 function OptionsFrame:RefreshValues()
+    local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
+    
     -- Actualizar sliders
     for key, slider in pairs(sliders) do
         if type(slider) == "table" and slider.SetValue then
@@ -468,57 +380,45 @@ function OptionsFrame:RefreshValues()
                 end
             end
             
-            if config then
-                -- Recalcular valores dinámicos
-                local defaultVal = config.default
-                if config.isDynamic then
-                    if config.key == "positionX" then
-                        defaultVal = (GetScreenWidth() or 1920) / 2
-                        -- Actualizar límites del slider también
-                        slider:SetMinMaxValues(0, GetScreenWidth() or 1920)
-                        slider.High:SetText(tostring(math.floor(GetScreenWidth() or 1920)))
-                    elseif config.key == "positionY" then
-                        defaultVal = (GetScreenHeight() or 1080) / 2
-                        -- Actualizar límites del slider también
-                        slider:SetMinMaxValues(0, GetScreenHeight() or 1080)
-                        slider.High:SetText(tostring(math.floor(GetScreenHeight() or 1080)))
-                    end
-                end
+            if config and _G.OptionsLogic then
+                -- Recalcular valores dinámicos usando OptionsLogic
+                local minVal, maxVal, defaultVal = _G.OptionsLogic:CalculateDynamicValues(config)
                 
-                local value = (ReadyCooldownAlertDB and ReadyCooldownAlertDB[config.key]) or defaultVal
+                -- Actualizar límites del slider
+                slider:SetMinMaxValues(minVal, maxVal)
+                slider.Low:SetText(tostring(math.floor(minVal)))
+                slider.High:SetText(tostring(math.floor(maxVal)))
+                
+                local value = _G.OptionsLogic:GetConfigValue(config.key)
                 slider:SetValue(value)
                 if slider.valueText then
-                    if config.key == "positionX" or config.key == "positionY" then
-                        slider.valueText:SetText(tostring(math.floor(value)))
-                    else
-                        slider.valueText:SetText(string.format("%.1f", value))
-                    end
+                    slider.valueText:SetText(_G.OptionsLogic:FormatSliderValue(config.key, value))
                 end
             end
         end
     end
     
     -- Actualizar checkboxes
-    if checkboxes.showSpellName then
-        local showSpellName = ReadyCooldownAlertDB and ReadyCooldownAlertDB.showSpellName
+    if checkboxes.showSpellName and _G.OptionsLogic then
+        local showSpellName = _G.OptionsLogic:GetConfigValue("showSpellName")
         if showSpellName == nil then showSpellName = true end
-        checkboxes.showSpellName:SetChecked(showSpellName)
+        checkboxes.showSpellName:SetChecked(showSpellName and true or false)
     end
     
-    if checkboxes.invertIgnored then
-        local invertIgnored = ReadyCooldownAlertDB and ReadyCooldownAlertDB.invertIgnored or false
-        checkboxes.invertIgnored:SetChecked(invertIgnored)
+    if checkboxes.invertIgnored and _G.OptionsLogic then
+        local invertIgnored = _G.OptionsLogic:GetConfigValue("invertIgnored") or false
+        checkboxes.invertIgnored:SetChecked(invertIgnored and true or false)
     end
     
     -- Actualizar edit boxes
-    if editBoxes.ignoredSpells then
-        local ignoredSpells = ReadyCooldownAlertDB and ReadyCooldownAlertDB.ignoredSpells or ""
-        editBoxes.ignoredSpells:SetText(ignoredSpells)
+    if editBoxes.ignoredSpells and _G.OptionsLogic then
+        local ignoredSpells = _G.OptionsLogic:GetConfigValue("ignoredSpells") or ""
+        editBoxes.ignoredSpells:SetText(tostring(ignoredSpells))
     end
     
     -- Actualizar dropdowns
-    if dropdowns.animationType then
-        local selectedAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+    if dropdowns.animationType and _G.OptionsLogic then
+        local selectedAnimation = _G.OptionsLogic:GetConfigValue("selectedAnimation") or "pulse"
         UIDropDownMenu_SetSelectedValue(dropdowns.animationType, selectedAnimation)
         
         -- Actualizar texto mostrado
@@ -533,107 +433,47 @@ end
 
 -- Callback cuando cambia la configuración
 function OptionsFrame:OnConfigChanged(key, value)
-    -- Validación especial para remainingCooldownWhenNotified
-    if key == "remainingCooldownWhenNotified" and value <= 0 then
-        -- Corregir valor a mínimo permitido
-        ReadyCooldownAlertDB.remainingCooldownWhenNotified = 0.1
-        if sliders[key] then
-            sliders[key]:SetValue(0.1)
-        end
-        return
-    end
-    
-    -- Notificar a otros módulos que la configuración cambió
-    if AnimationProcessor then
-        AnimationProcessor:RefreshConfig()
-    end
-    if FilterProcessor then
-        FilterProcessor:RefreshFilters()
-    end
-    
-    -- Actualizar posición del MainFrame si cambió positionX o positionY
-    if (key == "positionX" or key == "positionY") and MainFrame then
-        MainFrame:UpdatePosition()
-        
-        -- Si estamos en modo de edición, asegurar que el icono siga visible
-        if isEditingPosition then
-            MainFrame:ShowForPositioning()
-        end
+    -- Delegar toda la lógica a OptionsLogic
+    if _G.OptionsLogic then
+        return _G.OptionsLogic:OnConfigChanged(key, value)
     end
 end
 
 -- Manejar click en botón Test
 function OptionsFrame:OnTestClicked()
-    if AnimationProcessor then
-        AnimationProcessor:TestAnimation()
-    elseif MainFrame then
-        MainFrame:TestAnimation()
+    if _G.OptionsLogic then
+        _G.OptionsLogic:OnTestClicked()
     end
 end
 
 -- Manejar click en botón Unlock/Lock
 function OptionsFrame:OnUnlockClicked()
     local button = sliders.unlockButton
-    if not button then return end
+    if not button or not _G.OptionsLogic then return end
     
-    -- Cambiar estado de edición
-    isEditingPosition = not isEditingPosition
+    -- Usar OptionsLogic para manejar la lógica
+    local newState = _G.OptionsLogic:OnUnlockClicked(isEditingPosition)
+    isEditingPosition = newState
     
-    -- Actualizar texto del botón
+    -- Actualizar interfaz
     if isEditingPosition then
         button:SetText("Lock")
         self:SetPositionSlidersVisible(true)
-        
-        -- Mostrar icono para posicionamiento
-        if MainFrame then
-            MainFrame:ShowForPositioning()
-        end
     else
         button:SetText("Unlock")
         self:SetPositionSlidersVisible(false)
-        
-        -- Ocultar icono
-        if MainFrame then
-            MainFrame:HideFromPositioning()
-        end
     end
 end
 
 -- Manejar click en botón Defaults
 function OptionsFrame:OnDefaultsClicked()
-    -- Restaurar valores por defecto
-    if not ReadyCooldownAlertDB then
-        ReadyCooldownAlertDB = {}
-    end
-    
-    for _, config in ipairs(sliderConfigs) do
-        local defaultVal = config.default
-        -- Calcular valores dinámicos para posición
-        if config.isDynamic then
-            if config.key == "positionX" then
-                defaultVal = (GetScreenWidth() or 1920) / 2
-            elseif config.key == "positionY" then
-                defaultVal = (GetScreenHeight() or 1080) / 2
-            end
-        end
-        ReadyCooldownAlertDB[config.key] = defaultVal
-    end
-    
-    ReadyCooldownAlertDB.showSpellName = true
-    ReadyCooldownAlertDB.invertIgnored = false
-    ReadyCooldownAlertDB.ignoredSpells = ""
-    ReadyCooldownAlertDB.selectedAnimation = "pulse"
-    
-    -- Validar que remainingCooldownWhenNotified no sea cero
-    if ReadyCooldownAlertDB.remainingCooldownWhenNotified and ReadyCooldownAlertDB.remainingCooldownWhenNotified <= 0 then
-        ReadyCooldownAlertDB.remainingCooldownWhenNotified = 1.0
+    -- Delegar a OptionsLogic
+    if _G.OptionsLogic then
+        _G.OptionsLogic:RestoreDefaults()
     end
     
     -- Actualizar interfaz
     self:RefreshValues()
-    
-    -- Notificar cambios
-    self:OnConfigChanged("defaults", true)
 end
 
 -- Exportar globalmente para WoW addon system
