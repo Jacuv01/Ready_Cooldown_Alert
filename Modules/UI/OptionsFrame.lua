@@ -61,12 +61,12 @@ end
 
 -- Crear sliders de configuración
 function OptionsFrame:CreateSliders()
-    local yOffset = -200
+    local yOffset = -80
     local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
     
     for i, config in ipairs(sliderConfigs) do
         local slider = CreateFrame("Slider", "RCASlider" .. i, optionsFrame, "OptionsSliderTemplate")
-        slider:SetPoint("TOPLEFT", 20, yOffset)
+        slider:SetPoint("TOP", 0, yOffset)
         
         -- Configurar valores dinámicos usando OptionsLogic
         local minVal, maxVal, defaultVal = _G.OptionsLogic:CalculateDynamicValues(config)
@@ -74,7 +74,7 @@ function OptionsFrame:CreateSliders()
         slider:SetMinMaxValues(minVal, maxVal)
         slider:SetValueStep(config.step)
         slider:SetObeyStepOnDrag(true)
-        slider:SetWidth(200)
+        slider:SetWidth(300)
         
         -- Texto del slider
         slider.Text:SetText(config.label)
@@ -128,7 +128,7 @@ function OptionsFrame:CreateSliders()
             slider:Hide()
         end
         
-        yOffset = yOffset - 60
+        yOffset = yOffset - 50
     end
 end
 
@@ -233,6 +233,9 @@ local function InitializeAnimationDropdown(self, level)
                 ReadyCooldownAlertDB.selectedAnimation = animation.value
                 OptionsFrame:OnConfigChanged("selectedAnimation", animation.value)
             end
+            
+            -- Actualizar sliders con configuración específica de la animación seleccionada
+            OptionsFrame:UpdateSlidersForAnimation(animation.value)
         end
         UIDropDownMenu_AddButton(info, level)
     end
@@ -274,13 +277,16 @@ function OptionsFrame:CreateDropdowns()
     end
     
     dropdowns.animationType = animationDropdown
+    
+    -- Actualizar sliders para la animación seleccionada inicialmente
+    self:UpdateSlidersForAnimation(selectedAnimation)
 end
 
 -- Crear botones
 function OptionsFrame:CreateButtons()
     local buttonHeight = 25
     local buttonWidth = 80
-    local yOffset = -650
+    local yOffset = -(#_G.OptionsLogic:GetSliderConfigs() or 0) * 50 - 80
     
     -- Botón Test
     local testButton = CreateFrame("Button", "RCATestButton", optionsFrame, "GameMenuButtonTemplate")
@@ -349,6 +355,98 @@ end
 -- Verificar si está en modo de edición de posición
 function OptionsFrame:IsEditingPosition()
     return isEditingPosition
+end
+
+-- Actualizar sliders según la animación seleccionada
+function OptionsFrame:UpdateSlidersForAnimation(animationType)
+    if not AnimationData or not _G.OptionsLogic then
+        return
+    end
+    
+    -- Obtener la configuración de la animación seleccionada
+    local animationData = AnimationData:GetAnimation(animationType)
+    if not animationData then
+        return
+    end
+    
+    -- Obtener configuraciones actuales de sliders
+    local sliderConfigs = _G.OptionsLogic:GetSliderConfigs()
+    
+    -- Actualizar cada slider según si es relevante para esta animación
+    for _, config in ipairs(sliderConfigs) do
+        local slider = sliders[config.key]
+        if slider then
+            local isRelevant = self:IsSliderRelevantForAnimation(config.key, animationType)
+            
+            if isRelevant then
+                -- Mostrar slider y actualizar su valor si tiene configuración específica
+                slider:Show()
+                
+                -- Si la animación tiene valores específicos para este slider, aplicarlos
+                local animationSpecificValue = self:GetAnimationSpecificValue(animationType, config.key)
+                if animationSpecificValue then
+                    slider:SetValue(animationSpecificValue)
+                    if slider.valueText then
+                        slider.valueText:SetText(_G.OptionsLogic:FormatSliderValue(config.key, animationSpecificValue))
+                    end
+                end
+                
+                -- Actualizar el color del texto para indicar que es específico de la animación
+                if slider.Text then
+                    if animationSpecificValue then
+                        slider.Text:SetTextColor(1, 0.82, 0) -- Dorado para valores específicos
+                    else
+                        slider.Text:SetTextColor(1, 1, 1) -- Blanco para valores generales
+                    end
+                end
+            else
+                -- Ocultar sliders no relevantes para esta animación (excepto posición que tiene su propia lógica)
+                if not _G.OptionsLogic:ShouldSliderBeHidden(config.key) then
+                    slider:Hide()
+                end
+            end
+        end
+    end
+end
+
+-- Verificar si un slider es relevante para una animación específica
+function OptionsFrame:IsSliderRelevantForAnimation(sliderKey, animationType)
+    -- Mapeo de qué sliders son relevantes para cada animación
+    local animationRelevantSliders = {
+        pulse = {"fadeInTime", "fadeOutTime", "maxAlpha", "animScale", "iconSize", "holdTime", "remainingCooldownWhenNotified"},
+        bounce = {"fadeInTime", "fadeOutTime", "maxAlpha", "animScale", "iconSize", "holdTime", "remainingCooldownWhenNotified"},
+        fade = {"fadeInTime", "fadeOutTime", "maxAlpha", "iconSize", "holdTime", "remainingCooldownWhenNotified"},
+        zoom = {"fadeInTime", "fadeOutTime", "maxAlpha", "animScale", "iconSize", "holdTime", "remainingCooldownWhenNotified"},
+        glow = {"fadeInTime", "fadeOutTime", "maxAlpha", "iconSize", "holdTime", "remainingCooldownWhenNotified"}
+    }
+    
+    local relevantSliders = animationRelevantSliders[animationType]
+    if not relevantSliders then
+        return true -- Si no hay mapeo específico, mostrar todos
+    end
+    
+    -- Verificar si el slider está en la lista de relevantes
+    for _, relevantSlider in ipairs(relevantSliders) do
+        if relevantSlider == sliderKey then
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- Obtener valor específico de una animación para un slider
+function OptionsFrame:GetAnimationSpecificValue(animationType, sliderKey)
+    if not AnimationData then
+        return nil
+    end
+    
+    local animationData = AnimationData:GetAnimation(animationType)
+    if not animationData or not animationData.defaultValues then
+        return nil
+    end
+    
+    return animationData.defaultValues[sliderKey]
 end
 
 -- Mostrar/Ocultar panel de opciones
