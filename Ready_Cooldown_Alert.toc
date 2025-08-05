@@ -31,6 +31,10 @@ Modules\Logic\LogicManager.lua
 
 # UI Layer - Interfaz
 Modules\UI\MainFrame.lua
+Modules\UI\Components\LayoutManager.lua
+Modules\UI\Components\SliderManager.lua
+Modules\UI\Components\ButtonManager.lua
+Modules\UI\Components\ControlsManager.lua
 Modules\UI\OptionsFrame.lua
 
 # Test module (optional)
