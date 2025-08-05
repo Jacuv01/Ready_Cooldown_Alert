@@ -53,7 +53,7 @@ function OptionsFrame:Initialize()
     
     -- Inicializar estado de edición de posición
     isEditingPosition = false
-    self:SetPositionSlidersVisible(false)
+    self:SetPositionSlidersEnabled(false)
     
     -- Inicialmente oculto
     --optionsFrame:Hide()
@@ -123,9 +123,10 @@ function OptionsFrame:CreateSliders()
         
         sliders[config.key] = slider
         
-        -- Ocultar sliders de posición por defecto usando OptionsLogic
-        if _G.OptionsLogic and _G.OptionsLogic:ShouldSliderBeHidden(config.key) then
-            slider:Hide()
+        -- Desactivar sliders de posición por defecto usando OptionsLogic
+        if _G.OptionsLogic and _G.OptionsLogic:ShouldSliderBeDisabled(config.key) then
+            slider:SetEnabled(false)
+            slider:SetAlpha(0.5)
         end
         
         yOffset = yOffset - 50
@@ -135,7 +136,13 @@ end
 -- Crear checkboxes
 function OptionsFrame:CreateCheckboxes()
     local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
-    local yOffset = -40 - (#sliderConfigs * 60)
+    
+    -- Calcular posición debajo de los botones centrados
+    -- Los sliders terminan en: -80 - (#sliderConfigs * 50)
+    -- Los botones están 30px después: slidersEndPosition - 30
+    -- Los checkboxes van 40px después de los botones: slidersEndPosition - 30 - 25 - 40
+    local slidersEndPosition = -80 - (#sliderConfigs * 50)
+    local yOffset = slidersEndPosition - 30 - 25 - 40 -- Después de sliders, botones y separación
     
     -- Checkbox para mostrar nombres de hechizos
     local showNameCB = CreateFrame("CheckButton", "RCAShowNameCheckbox", optionsFrame, "ChatConfigCheckButtonTemplate")
@@ -178,7 +185,12 @@ end
 -- Crear edit boxes
 function OptionsFrame:CreateEditBoxes()
     local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
-    local yOffset = -40 - (#sliderConfigs * 60) - 80
+    
+    -- Calcular posición debajo de los checkboxes
+    -- Los checkboxes están en: slidersEndPosition - 30 - 25 - 40
+    -- Y ocupan 60px (30px cada uno), así que editBoxes van después
+    local slidersEndPosition = -80 - (#sliderConfigs * 50)
+    local yOffset = slidersEndPosition - 30 - 25 - 40 - 60 -- Después de sliders, botones, checkboxes
     
     -- Label para ignored spells
     local ignoredLabel = optionsFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -285,12 +297,23 @@ end
 -- Crear botones
 function OptionsFrame:CreateButtons()
     local buttonHeight = 25
-    local buttonWidth = 80
-    local yOffset = -(#_G.OptionsLogic:GetSliderConfigs() or 0) * 50 - 80
+    local buttonWidth = 75
+    local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
+    
+    -- Calcular posición justo después de los sliders
+    -- Los sliders empiezan en -80 y cada uno ocupa 50px de altura
+    local slidersEndPosition = -80 - (#sliderConfigs * 50)
+    local firstButtonRowY = slidersEndPosition - 30 -- 30px de separación después de los sliders
+    
+    -- PRIMERA FILA: Test, Unlock, Reset Anim (justo después de los sliders - CENTRADOS)
+    
+    -- Calcular posición centrada para 3 botones
+    local totalButtonsWidth = (buttonWidth * 3) + (10 * 2) -- 3 botones + 2 espacios de separación
+    local startX = (400 - totalButtonsWidth) / 2 -- Centrar en la ventana de 400px de ancho
     
     -- Botón Test
     local testButton = CreateFrame("Button", "RCATestButton", optionsFrame, "GameMenuButtonTemplate")
-    testButton:SetPoint("TOPLEFT", 20, yOffset)
+    testButton:SetPoint("TOPLEFT", startX, firstButtonRowY)
     testButton:SetSize(buttonWidth, buttonHeight)
     testButton:SetText("Test")
     testButton:SetScript("OnClick", function()
@@ -299,57 +322,74 @@ function OptionsFrame:CreateButtons()
     
     -- Botón Unlock/Lock
     local unlockButton = CreateFrame("Button", "RCAUnlockButton", optionsFrame, "GameMenuButtonTemplate")
-    unlockButton:SetPoint("TOPLEFT", 110, yOffset)
+    unlockButton:SetPoint("TOPLEFT", startX + buttonWidth + 10, firstButtonRowY) -- Después del Test + separación
     unlockButton:SetSize(buttonWidth, buttonHeight)
     unlockButton:SetText("Unlock")
     unlockButton:SetScript("OnClick", function()
         OptionsFrame:OnUnlockClicked()
     end)
     
-    -- Botón Defaults
-    local defaultsButton = CreateFrame("Button", "RCADefaultsButton", optionsFrame, "GameMenuButtonTemplate")
-    defaultsButton:SetPoint("TOPLEFT", 200, yOffset)
-    defaultsButton:SetSize(buttonWidth, buttonHeight)
-    defaultsButton:SetText("Defaults")
-    defaultsButton:SetScript("OnClick", function()
-        OptionsFrame:OnDefaultsClicked()
+    -- Botón Reset Animation (restaurar valores de animación actual)
+    local resetAnimButton = CreateFrame("Button", "RCAResetAnimButton", optionsFrame, "GameMenuButtonTemplate")
+    resetAnimButton:SetPoint("TOPLEFT", startX + (buttonWidth * 2) + 20, firstButtonRowY) -- Después del Unlock + separación
+    resetAnimButton:SetSize(buttonWidth, buttonHeight)
+    resetAnimButton:SetText("Reset Anim")
+    resetAnimButton:SetScript("OnClick", function()
+        OptionsFrame:OnResetAnimationClicked()
+    end)
+    
+    -- SEGUNDA FILA: Reset All y Close (en la parte inferior derecha)
+    local bottomRightY = -870 -- Cerca del borde inferior de la ventana (altura 900px)
+    
+    -- Botón Reset All (restaurar todo a valores por defecto)
+    local resetAllButton = CreateFrame("Button", "RCAResetAllButton", optionsFrame, "GameMenuButtonTemplate")
+    resetAllButton:SetPoint("BOTTOMRIGHT", optionsFrame, "BOTTOMRIGHT", -90, 20) -- 90px desde el borde derecho, 20px desde abajo
+    resetAllButton:SetSize(buttonWidth, buttonHeight)
+    resetAllButton:SetText("Reset All")
+    resetAllButton:SetScript("OnClick", function()
+        OptionsFrame:OnResetAllClicked()
     end)
     
     -- Botón Close
     local closeButton = CreateFrame("Button", "RCACloseButton", optionsFrame, "GameMenuButtonTemplate")
-    closeButton:SetPoint("TOPLEFT", 290, yOffset)
+    closeButton:SetPoint("BOTTOMRIGHT", optionsFrame, "BOTTOMRIGHT", -10, 20) -- 10px desde el borde derecho, 20px desde abajo
     closeButton:SetSize(buttonWidth, buttonHeight)
     closeButton:SetText("Close")
     closeButton:SetScript("OnClick", function()
-        optionsFrame:Hide()
+        OptionsFrame:OnCloseClicked()
     end)
     
     -- Guardar referencias
     sliders.testButton = testButton
     sliders.unlockButton = unlockButton
-    sliders.defaultsButton = defaultsButton
+    sliders.resetAnimButton = resetAnimButton
+    sliders.resetAllButton = resetAllButton
     sliders.closeButton = closeButton
 end
 
--- Mostrar/Ocultar sliders de posición
-function OptionsFrame:SetPositionSlidersVisible(visible)
+-- Activar/Desactivar sliders de posición
+function OptionsFrame:SetPositionSlidersEnabled(enabled)
     if sliders.positionX then
-        if visible then
-            sliders.positionX:Show()
+        sliders.positionX:SetEnabled(enabled)
+        -- Cambiar la apariencia visual para mostrar el estado
+        if enabled then
+            sliders.positionX:SetAlpha(1.0)
         else
-            sliders.positionX:Hide()
+            sliders.positionX:SetAlpha(0.5)
         end
     end
     
     if sliders.positionY then
-        if visible then
-            sliders.positionY:Show()
+        sliders.positionY:SetEnabled(enabled)
+        -- Cambiar la apariencia visual para mostrar el estado
+        if enabled then
+            sliders.positionY:SetAlpha(1.0)
         else
-            sliders.positionY:Hide()
+            sliders.positionY:SetAlpha(0.5)
         end
     end
     
-    isEditingPosition = visible
+    isEditingPosition = enabled
 end
 
 -- Verificar si está en modo de edición de posición
@@ -382,6 +422,12 @@ function OptionsFrame:UpdateSlidersForAnimation(animationType)
                 -- Mostrar slider y actualizar su valor si tiene configuración específica
                 slider:Show()
                 
+                -- Reactivar slider si no es de posición (los de posición se manejan por separado)
+                if not _G.OptionsLogic:ShouldSliderBeDisabled(config.key) then
+                    slider:SetEnabled(true)
+                    slider:SetAlpha(1.0)
+                end
+                
                 -- Si la animación tiene valores específicos para este slider, aplicarlos
                 local animationSpecificValue = self:GetAnimationSpecificValue(animationType, config.key)
                 if animationSpecificValue then
@@ -400,9 +446,12 @@ function OptionsFrame:UpdateSlidersForAnimation(animationType)
                     end
                 end
             else
-                -- Ocultar sliders no relevantes para esta animación (excepto posición que tiene su propia lógica)
-                if not _G.OptionsLogic:ShouldSliderBeHidden(config.key) then
-                    slider:Hide()
+                -- Desactivar sliders no relevantes para esta animación (excepto posición que tiene su propia lógica)
+                if not _G.OptionsLogic:ShouldSliderBeDisabled(config.key) then
+                    slider:SetAlpha(0.3)
+                    slider:SetEnabled(false)
+                else
+                    -- Los sliders de posición mantienen su estado actual (controlado por el botón unlock)
                 end
             end
         end
@@ -556,22 +605,70 @@ function OptionsFrame:OnUnlockClicked()
     -- Actualizar interfaz
     if isEditingPosition then
         button:SetText("Lock")
-        self:SetPositionSlidersVisible(true)
+        self:SetPositionSlidersEnabled(true)
     else
         button:SetText("Unlock")
-        self:SetPositionSlidersVisible(false)
+        self:SetPositionSlidersEnabled(false)
     end
 end
 
--- Manejar click en botón Defaults
-function OptionsFrame:OnDefaultsClicked()
-    -- Delegar a OptionsLogic
+-- Manejar click en botón Defaults (ahora Reset Animation)
+function OptionsFrame:OnResetAnimationClicked()
+    -- Obtener la animación actualmente seleccionada
+    local currentAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+    
+    -- Delegar a OptionsLogic para restaurar valores de la animación actual
+    if _G.OptionsLogic then
+        _G.OptionsLogic:RestoreAnimationDefaults(currentAnimation)
+    end
+    
+    -- Actualizar interfaz
+    self:RefreshValues()
+    
+    -- Actualizar sliders específicamente para la animación actual
+    self:UpdateSlidersForAnimation(currentAnimation)
+end
+
+-- Manejar click en botón Reset All (restaurar todo)
+function OptionsFrame:OnResetAllClicked()
+    -- Delegar a OptionsLogic para restaurar TODOS los valores
     if _G.OptionsLogic then
         _G.OptionsLogic:RestoreDefaults()
     end
     
     -- Actualizar interfaz
     self:RefreshValues()
+    
+    -- La animación habrá cambiado a "pulse", actualizar sliders
+    local newAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+    self:UpdateSlidersForAnimation(newAnimation)
+end
+
+-- Mantener función legacy para compatibilidad
+function OptionsFrame:OnDefaultsClicked()
+    -- Redirigir a la nueva función de reset de animación
+    self:OnResetAnimationClicked()
+end
+
+-- Manejar click en botón Close
+function OptionsFrame:OnCloseClicked()
+    -- Si está en modo edición (unlocked), hacer lock primero
+    if isEditingPosition and _G.OptionsLogic then
+        local newState = _G.OptionsLogic:OnCloseClicked(isEditingPosition)
+        isEditingPosition = newState
+        
+        -- Actualizar el botón unlock para mostrar el estado correcto
+        local unlockButton = sliders.unlockButton
+        if unlockButton then
+            unlockButton:SetText("Unlock")
+            self:SetPositionSlidersEnabled(false)
+        end
+    end
+    
+    -- Cerrar la ventana
+    if optionsFrame then
+        optionsFrame:Hide()
+    end
 end
 
 -- Exportar globalmente para WoW addon system

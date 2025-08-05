@@ -173,6 +173,19 @@ function OptionsLogic:OnUnlockClicked(currentState)
     return newState
 end
 
+-- Manejar click en botón Close
+function OptionsLogic:OnCloseClicked(isCurrentlyUnlocked)
+    -- Si está unlocked, hacer lock primero
+    if isCurrentlyUnlocked then
+        if MainFrame then
+            MainFrame:HideFromPositioning()
+        end
+    end
+    
+    -- Devolver que debe estar locked (false = locked)
+    return false
+end
+
 -- Restaurar valores por defecto
 function OptionsLogic:RestoreDefaults()
     -- Inicializar base de datos si no existe
@@ -199,6 +212,29 @@ function OptionsLogic:RestoreDefaults()
     
     -- Notificar cambios
     self:OnConfigChanged("defaults", true)
+end
+
+-- Restaurar valores por defecto de la animación actual
+function OptionsLogic:RestoreAnimationDefaults(animationType)
+    if not ReadyCooldownAlertDB or not AnimationData then
+        return
+    end
+    
+    -- Obtener la configuración de la animación seleccionada
+    local animationData = AnimationData:GetAnimation(animationType)
+    if not animationData or not animationData.defaultValues then
+        return
+    end
+    
+    -- Restaurar solo los valores específicos de esta animación
+    for key, defaultValue in pairs(animationData.defaultValues) do
+        ReadyCooldownAlertDB[key] = defaultValue
+        -- Notificar cambio individual
+        self:OnConfigChanged(key, defaultValue)
+    end
+    
+    -- No cambiar la animación seleccionada, mantener la actual
+    -- No cambiar otros valores como showSpellName, invertIgnored, etc.
 end
 
 -- Obtener valor actual de configuración con fallback a default
@@ -241,8 +277,8 @@ function OptionsLogic:GetMouseWheelStep(key)
     return 0.1 -- Default step
 end
 
--- Verificar si un slider debe estar oculto por defecto
-function OptionsLogic:ShouldSliderBeHidden(key)
+-- Verificar si un slider debe estar desactivado por defecto
+function OptionsLogic:ShouldSliderBeDisabled(key)
     return key == "positionX" or key == "positionY"
 end
 
