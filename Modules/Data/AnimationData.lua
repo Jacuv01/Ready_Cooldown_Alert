@@ -38,7 +38,7 @@ AnimationData.animations = {
                 if currentTime <= fadeInTime then
                     -- Fade In - crece de 0.8 hasta 1.0 (tamaño normal)
                     phase = "fadeIn"
-                    local fadeProgress = currentTime / fadeInTime
+                    local fadeProgress = math.max(0, math.min(1, currentTime / fadeInTime))
                     alpha = userMaxAlpha * fadeProgress
                     -- Escala desde 0.8 hasta 1.0 (factor relativo)
                     local scaleStart = 0.8
@@ -52,13 +52,15 @@ AnimationData.animations = {
                     -- Fade Out - mantiene el tamaño normal
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
+                    -- Clamp fadeProgress para evitar valores negativos
+                    fadeProgress = math.max(0, math.min(1, fadeProgress))
                     alpha = userMaxAlpha * (1 - fadeProgress)
                     scale = 1.0
                 end
                 
                 return {
-                    alpha = alpha,
-                    scale = scale,
+                    alpha = math.max(0, math.min(1, alpha)), -- Clamp alpha final
+                    scale = math.max(0.1, scale), -- Evitar escala 0 o negativa
                     phase = phase
                 }
             end
@@ -99,7 +101,7 @@ AnimationData.animations = {
                 if currentTime <= fadeInTime then
                     -- Fade In con bounce - crece de 0.5 hasta 1.0 con rebote
                     phase = "fadeIn"
-                    local fadeProgress = currentTime / fadeInTime
+                    local fadeProgress = math.max(0, math.min(1, currentTime / fadeInTime))
                     alpha = userMaxAlpha * fadeProgress
                     -- Efecto bounce en la escala (factor relativo)
                     local bounceScale = math.sin(fadeProgress * math.pi * 2) * 0.3
@@ -109,20 +111,22 @@ AnimationData.animations = {
                     -- Hold con pequeño bounce continuo
                     phase = "hold"
                     alpha = userMaxAlpha
-                    local holdProgress = (currentTime - fadeInTime) / holdTime
+                    local holdProgress = math.max(0, math.min(1, (currentTime - fadeInTime) / holdTime))
                     local bounce = math.sin(holdProgress * math.pi * 4) * 0.1
                     scale = 1.0 + bounce -- Factor relativo con bounce
                 else
                     -- Fade Out - reduce escala gradualmente
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
+                    -- Clamp fadeProgress para evitar valores negativos
+                    fadeProgress = math.max(0, math.min(1, fadeProgress))
                     alpha = userMaxAlpha * (1 - fadeProgress)
                     scale = 1.0 * (1 - fadeProgress * 0.5) -- Reducir gradualmente a la mitad
                 end
                 
                 return {
-                    alpha = alpha,
-                    scale = scale,
+                    alpha = math.max(0, math.min(1, alpha)), -- Clamp alpha final
+                    scale = math.max(0.1, scale), -- Evitar escala 0 o negativa
                     phase = phase
                 }
             end
@@ -163,7 +167,7 @@ AnimationData.animations = {
                 if currentTime <= fadeInTime then
                     -- Fade In suave - mantiene tamaño normal (1.0)
                     phase = "fadeIn"
-                    local fadeProgress = currentTime / fadeInTime
+                    local fadeProgress = math.max(0, math.min(1, currentTime / fadeInTime))
                     alpha = userMaxAlpha * fadeProgress
                     -- Sin crecimiento de escala, mantiene factor 1.0
                     scale = 1.0
@@ -176,13 +180,15 @@ AnimationData.animations = {
                     -- Fade Out suave - mantiene el tamaño
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
+                    -- Clamp fadeProgress para evitar valores negativos
+                    fadeProgress = math.max(0, math.min(1, fadeProgress))
                     alpha = userMaxAlpha * (1 - fadeProgress)
                     scale = 1.0
                 end
                 
                 return {
-                    alpha = alpha,
-                    scale = scale,
+                    alpha = math.max(0, math.min(1, alpha)), -- Clamp alpha final
+                    scale = math.max(0.1, scale), -- Evitar escala 0 o negativa
                     phase = phase
                 }
             end
@@ -223,7 +229,7 @@ AnimationData.animations = {
                 if currentTime <= fadeInTime then
                     -- Zoom rápido - explota desde 0.1 hasta 1.0 (tamaño normal)
                     phase = "fadeIn"
-                    local fadeProgress = currentTime / fadeInTime
+                    local fadeProgress = math.max(0, math.min(1, currentTime / fadeInTime))
                     -- Curva de aceleración para el zoom
                     local easedProgress = fadeProgress * fadeProgress
                     alpha = userMaxAlpha * easedProgress
@@ -239,14 +245,16 @@ AnimationData.animations = {
                     -- Zoom out rápido - se encoge gradualmente
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
+                    -- Clamp fadeProgress para evitar valores negativos
+                    fadeProgress = math.max(0, math.min(1, fadeProgress))
                     alpha = userMaxAlpha * (1 - fadeProgress)
                     -- Se encoge al 20% del tamaño normal durante el fade out
                     scale = 1.0 * (1 - fadeProgress * 0.8)
                 end
                 
                 return {
-                    alpha = alpha,
-                    scale = scale,
+                    alpha = math.max(0, math.min(1, alpha)), -- Clamp alpha final
+                    scale = math.max(0.1, scale), -- Evitar escala 0 o negativa
                     phase = phase
                 }
             end
@@ -287,13 +295,13 @@ AnimationData.animations = {
                 if currentTime <= fadeInTime then
                     -- Fade In - crece suavemente hasta tamaño normal (1.0)
                     phase = "fadeIn"
-                    local fadeProgress = currentTime / fadeInTime
+                    local fadeProgress = math.max(0, math.min(1, currentTime / fadeInTime))
                     alpha = userMaxAlpha * fadeProgress
                     scale = 1.0 -- Mantiene factor normal
                 elseif currentTime <= fadeInTime + holdTime then
                     -- Hold con pulsing glow dinámico - ¡ESTE ES EL EFECTO PRINCIPAL!
                     phase = "hold"
-                    local holdProgress = (currentTime - fadeInTime) / holdTime
+                    local holdProgress = math.max(0, math.min(1, (currentTime - fadeInTime) / holdTime))
                     -- Efecto pulsing que pulsa entre tamaños y transparencias
                     local pulseFrequency = 3 -- 3 pulsos durante el hold
                     local pulseValue = math.sin(holdProgress * math.pi * pulseFrequency)
@@ -309,13 +317,15 @@ AnimationData.animations = {
                     -- Fade Out - se desvanece manteniendo el tamaño normal
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
+                    -- Clamp fadeProgress para evitar valores negativos
+                    fadeProgress = math.max(0, math.min(1, fadeProgress))
                     alpha = userMaxAlpha * (1 - fadeProgress)
                     scale = 1.0
                 end
                 
                 return {
-                    alpha = alpha,
-                    scale = scale,
+                    alpha = math.max(0, math.min(1, alpha)), -- Clamp alpha final
+                    scale = math.max(0.1, scale), -- Evitar escala 0 o negativa
                     phase = phase
                 }
             end

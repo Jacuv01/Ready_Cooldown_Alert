@@ -128,9 +128,11 @@ end
 function MainFrame:UpdateAnimation(animationData)
     if not animationData or not frame then return end
     
-    -- Actualizar alpha
+    -- Actualizar alpha con validación
     if animationData.alpha and frame then
-        frame:SetAlpha(animationData.alpha)
+        -- Asegurar que alpha esté entre 0 y 1
+        local validAlpha = math.max(0, math.min(1, animationData.alpha))
+        frame:SetAlpha(validAlpha)
     end
     
     -- Actualizar escala
