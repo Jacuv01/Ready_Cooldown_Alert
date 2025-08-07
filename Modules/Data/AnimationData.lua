@@ -25,31 +25,35 @@ AnimationData.animations = {
             alphaEnd = 0.7,
             -- Función de animación personalizada
             updateFunction = function(progress, totalTime, currentTime)
-                local phase = "hold"
-                local alpha = 0.7
-                local scale = 1.5
+                -- Obtener configuración del usuario desde ReadyCooldownAlertDB
+                local userMaxAlpha = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.maxAlpha) or 0.7
+                local fadeInTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeInTime) or 0.1
+                local holdTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.holdTime) or 0.3
+                local fadeOutTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeOutTime) or 0.2
                 
-                local fadeInTime = 0.1
-                local holdTime = 0.3
-                local fadeOutTime = 0.2
+                local phase = "hold"
+                local alpha = userMaxAlpha
+                local scale = 1.0 -- Factor relativo: 1.0 = tamaño normal del usuario
                 
                 if currentTime <= fadeInTime then
-                    -- Fade In
+                    -- Fade In - crece de 0.8 hasta 1.0 (tamaño normal)
                     phase = "fadeIn"
                     local fadeProgress = currentTime / fadeInTime
-                    alpha = 0.7 * fadeProgress
-                    scale = 0.8 + (0.7 * fadeProgress) -- 0.8 a 1.5
+                    alpha = userMaxAlpha * fadeProgress
+                    -- Escala desde 0.8 hasta 1.0 (factor relativo)
+                    local scaleStart = 0.8
+                    scale = scaleStart + ((1.0 - scaleStart) * fadeProgress)
                 elseif currentTime <= fadeInTime + holdTime then
-                    -- Hold
+                    -- Hold - mantiene el tamaño normal (1.0)
                     phase = "hold"
-                    alpha = 0.7
-                    scale = 1.5
+                    alpha = userMaxAlpha
+                    scale = 1.0
                 else
-                    -- Fade Out
+                    -- Fade Out - mantiene el tamaño normal
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
-                    alpha = 0.7 * (1 - fadeProgress)
-                    scale = 1.5
+                    alpha = userMaxAlpha * (1 - fadeProgress)
+                    scale = 1.0
                 end
                 
                 return {
@@ -82,35 +86,38 @@ AnimationData.animations = {
             alphaStart = 0,
             alphaEnd = 0.8,
             updateFunction = function(progress, totalTime, currentTime)
-                local phase = "hold"
-                local alpha = 0.8
-                local scale = 1.0
+                -- Obtener configuración del usuario
+                local userMaxAlpha = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.maxAlpha) or 0.8
+                local fadeInTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeInTime) or 0.2
+                local holdTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.holdTime) or 0.4
+                local fadeOutTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeOutTime) or 0.3
                 
-                local fadeInTime = 0.2
-                local holdTime = 0.4
-                local fadeOutTime = 0.3
+                local phase = "hold"
+                local alpha = userMaxAlpha
+                local scale = 1.0 -- Factor relativo: 1.0 = tamaño normal del usuario
                 
                 if currentTime <= fadeInTime then
-                    -- Fade In con bounce
+                    -- Fade In con bounce - crece de 0.5 hasta 1.0 con rebote
                     phase = "fadeIn"
                     local fadeProgress = currentTime / fadeInTime
-                    alpha = 0.8 * fadeProgress
-                    -- Efecto bounce en la escala
+                    alpha = userMaxAlpha * fadeProgress
+                    -- Efecto bounce en la escala (factor relativo)
                     local bounceScale = math.sin(fadeProgress * math.pi * 2) * 0.3
-                    scale = 0.5 + (1.5 * fadeProgress) + bounceScale
+                    local scaleStart = 0.5
+                    scale = scaleStart + ((1.0 - scaleStart) * fadeProgress) + bounceScale
                 elseif currentTime <= fadeInTime + holdTime then
                     -- Hold con pequeño bounce continuo
                     phase = "hold"
-                    alpha = 0.8
+                    alpha = userMaxAlpha
                     local holdProgress = (currentTime - fadeInTime) / holdTime
                     local bounce = math.sin(holdProgress * math.pi * 4) * 0.1
-                    scale = 2.0 + bounce
+                    scale = 1.0 + bounce -- Factor relativo con bounce
                 else
-                    -- Fade Out
+                    -- Fade Out - reduce escala gradualmente
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
-                    alpha = 0.8 * (1 - fadeProgress)
-                    scale = 2.0 * (1 - fadeProgress * 0.5) -- Reducir gradualmente
+                    alpha = userMaxAlpha * (1 - fadeProgress)
+                    scale = 1.0 * (1 - fadeProgress * 0.5) -- Reducir gradualmente a la mitad
                 end
                 
                 return {
@@ -143,31 +150,34 @@ AnimationData.animations = {
             alphaStart = 0,
             alphaEnd = 0.9,
             updateFunction = function(progress, totalTime, currentTime)
-                local phase = "hold"
-                local alpha = 0.9
-                local scale = 1.2
+                -- Obtener configuración del usuario
+                local userMaxAlpha = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.maxAlpha) or 0.9
+                local fadeInTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeInTime) or 0.3
+                local holdTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.holdTime) or 0.5
+                local fadeOutTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeOutTime) or 0.4
                 
-                local fadeInTime = 0.3
-                local holdTime = 0.5
-                local fadeOutTime = 0.4
+                local phase = "hold"
+                local alpha = userMaxAlpha
+                local scale = 1.0 -- Factor relativo: 1.0 = tamaño normal del usuario
                 
                 if currentTime <= fadeInTime then
-                    -- Fade In suave
+                    -- Fade In suave - mantiene tamaño normal (1.0)
                     phase = "fadeIn"
                     local fadeProgress = currentTime / fadeInTime
-                    alpha = 0.9 * fadeProgress
-                    scale = 1.0 + (0.2 * fadeProgress)
+                    alpha = userMaxAlpha * fadeProgress
+                    -- Sin crecimiento de escala, mantiene factor 1.0
+                    scale = 1.0
                 elseif currentTime <= fadeInTime + holdTime then
                     -- Hold estable
                     phase = "hold"
-                    alpha = 0.9
-                    scale = 1.2
+                    alpha = userMaxAlpha
+                    scale = 1.0
                 else
-                    -- Fade Out suave
+                    -- Fade Out suave - mantiene el tamaño
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
-                    alpha = 0.9 * (1 - fadeProgress)
-                    scale = 1.2
+                    alpha = userMaxAlpha * (1 - fadeProgress)
+                    scale = 1.0
                 end
                 
                 return {
@@ -200,33 +210,38 @@ AnimationData.animations = {
             alphaStart = 0,
             alphaEnd = 0.6,
             updateFunction = function(progress, totalTime, currentTime)
-                local phase = "hold"
-                local alpha = 0.6
-                local scale = 2.5
+                -- Obtener configuración del usuario
+                local userMaxAlpha = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.maxAlpha) or 0.6
+                local fadeInTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeInTime) or 0.15
+                local holdTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.holdTime) or 0.2
+                local fadeOutTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeOutTime) or 0.15
                 
-                local fadeInTime = 0.15
-                local holdTime = 0.2
-                local fadeOutTime = 0.15
+                local phase = "hold"
+                local alpha = userMaxAlpha
+                local scale = 1.0 -- Factor relativo: 1.0 = tamaño normal del usuario
                 
                 if currentTime <= fadeInTime then
-                    -- Zoom rápido
+                    -- Zoom rápido - explota desde 0.1 hasta 1.0 (tamaño normal)
                     phase = "fadeIn"
                     local fadeProgress = currentTime / fadeInTime
                     -- Curva de aceleración para el zoom
                     local easedProgress = fadeProgress * fadeProgress
-                    alpha = 0.6 * easedProgress
-                    scale = 0.1 + (2.4 * easedProgress)
+                    alpha = userMaxAlpha * easedProgress
+                    -- Zoom dramático desde 0.1 hasta 1.0 (factor relativo)
+                    local scaleStart = 0.1
+                    scale = scaleStart + ((1.0 - scaleStart) * easedProgress)
                 elseif currentTime <= fadeInTime + holdTime then
-                    -- Hold
+                    -- Hold - mantiene tamaño normal (1.0)
                     phase = "hold"
-                    alpha = 0.6
-                    scale = 2.5
+                    alpha = userMaxAlpha
+                    scale = 1.0
                 else
-                    -- Zoom out rápido
+                    -- Zoom out rápido - se encoge gradualmente
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
-                    alpha = 0.6 * (1 - fadeProgress)
-                    scale = 2.5 * (1 - fadeProgress * 0.8) -- Reducir escala gradualmente
+                    alpha = userMaxAlpha * (1 - fadeProgress)
+                    -- Se encoge al 20% del tamaño normal durante el fade out
+                    scale = 1.0 * (1 - fadeProgress * 0.8)
                 end
                 
                 return {
@@ -259,34 +274,43 @@ AnimationData.animations = {
             alphaStart = 0,
             alphaEnd = 0.85,
             updateFunction = function(progress, totalTime, currentTime)
-                local phase = "hold"
-                local alpha = 0.85
-                local scale = 1.3
+                -- Obtener configuración del usuario
+                local userMaxAlpha = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.maxAlpha) or 0.85
+                local fadeInTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeInTime) or 0.25
+                local holdTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.holdTime) or 0.6
+                local fadeOutTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeOutTime) or 0.35
                 
-                local fadeInTime = 0.25
-                local holdTime = 0.6
-                local fadeOutTime = 0.35
+                local phase = "hold"
+                local alpha = userMaxAlpha
+                local scale = 1.0 -- Factor relativo: 1.0 = tamaño normal del usuario
                 
                 if currentTime <= fadeInTime then
-                    -- Fade In
+                    -- Fade In - crece suavemente hasta tamaño normal (1.0)
                     phase = "fadeIn"
                     local fadeProgress = currentTime / fadeInTime
-                    alpha = 0.85 * fadeProgress
-                    scale = 1.0 + (0.3 * fadeProgress)
+                    alpha = userMaxAlpha * fadeProgress
+                    scale = 1.0 -- Mantiene factor normal
                 elseif currentTime <= fadeInTime + holdTime then
-                    -- Hold con pulsing glow
+                    -- Hold con pulsing glow dinámico - ¡ESTE ES EL EFECTO PRINCIPAL!
                     phase = "hold"
                     local holdProgress = (currentTime - fadeInTime) / holdTime
-                    local pulse = math.sin(holdProgress * math.pi * 3) * 0.15 + 0.85
-                    alpha = pulse
-                    local scalePulse = math.sin(holdProgress * math.pi * 3) * 0.1 + 1.3
-                    scale = scalePulse
+                    -- Efecto pulsing que pulsa entre tamaños y transparencias
+                    local pulseFrequency = 3 -- 3 pulsos durante el hold
+                    local pulseValue = math.sin(holdProgress * math.pi * pulseFrequency)
+                    
+                    -- Alpha pulsa entre 70% y 100% del maxAlpha del usuario
+                    local alphaPulseIntensity = 0.3 -- 30% de variación
+                    alpha = userMaxAlpha * (1.0 - alphaPulseIntensity + (alphaPulseIntensity * (pulseValue + 1) / 2))
+                    
+                    -- Scale pulsa entre 1.0 y 1.2 (20% más grande que el tamaño normal)
+                    local scalePulseIntensity = 0.2 -- 20% de variación en escala
+                    scale = 1.0 + scalePulseIntensity * (pulseValue + 1) / 2
                 else
-                    -- Fade Out
+                    -- Fade Out - se desvanece manteniendo el tamaño normal
                     phase = "fadeOut"
                     local fadeProgress = (currentTime - fadeInTime - holdTime) / fadeOutTime
-                    alpha = 0.85 * (1 - fadeProgress)
-                    scale = 1.3
+                    alpha = userMaxAlpha * (1 - fadeProgress)
+                    scale = 1.0
                 end
                 
                 return {

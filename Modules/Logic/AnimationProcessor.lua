@@ -188,8 +188,15 @@ function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
     if AnimationData then
         local animationState = AnimationData:CalculateAnimationState(selectedAnimationId, currentTime, totalTime)
         if animationState then
-            -- Aplicar configuraciones de escala e icono
-            local finalScale = iconSize * animationState.scale
+            -- Calcular escala correctamente: tamaño base * escala de animación * escala del usuario
+            -- animScale actúa como multiplicador directo: 1.0 = tamaño normal, 0.5 = mitad, 2.0 = doble
+            -- animationState.scale es el factor relativo de la animación (ej: 0.8, 1.0, 1.5)
+            local userScale = animScale or 1.0
+            local animationScaleFactor = animationState.scale or 1.0
+            local finalScale = iconSize * userScale * animationScaleFactor
+            
+            -- Aplicar maxAlpha a la animación - el alpha de la animación se multiplica por maxAlpha
+            local finalAlpha = (animationState.alpha or 1.0) * maxAlpha
             
             -- Validar textura usando TextureValidator
             local validTexture = currentAnimation.texture
@@ -201,7 +208,7 @@ function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
                 texture = validTexture,
                 isPet = currentAnimation.isPet or false,
                 name = showSpellName and currentAnimation.name or nil,
-                alpha = animationState.alpha,
+                alpha = finalAlpha,
                 scale = finalScale,
                 width = finalScale,
                 height = finalScale,
@@ -227,8 +234,10 @@ function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
     end
     -- Fase Hold: alpha = maxAlpha (sin cambios)
     
-    -- Calcular escala progresiva
-    local scale = iconSize + (iconSize * ((animScale - 1) * (currentTime / totalTime)))
+    -- Calcular escala correctamente: tamaño base * escala del usuario
+    -- animScale actúa como multiplicador directo: 1.0 = tamaño normal, 0.5 = mitad, 2.0 = doble
+    local userScale = animScale or 1.0
+    local finalScale = iconSize * userScale
     
     -- Validar textura usando TextureValidator
     local validTexture = currentAnimation.texture
@@ -241,9 +250,9 @@ function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
         isPet = currentAnimation.isPet or false,
         name = showSpellName and currentAnimation.name or nil,
         alpha = alpha,
-        scale = scale,
-        width = scale,
-        height = scale,
+        scale = finalScale,
+        width = finalScale,
+        height = finalScale,
         phase = phase,
         progress = currentTime / totalTime,
         petOverlay = currentAnimation.isPet and petOverlay or nil
@@ -291,6 +300,19 @@ function AnimationProcessor:TestAnimation()
     -- Usar textura de Pyroblast como ejemplo
     local testTexture = 135808
     self:QueueAnimation(testTexture, false, "Test Animation")
+end
+
+-- Debug: Mostrar configuración actual
+function AnimationProcessor:DebugConfig()
+    print("=== AnimationProcessor Config ===")
+    print("fadeInTime: " .. tostring(fadeInTime))
+    print("fadeOutTime: " .. tostring(fadeOutTime)) 
+    print("maxAlpha: " .. tostring(maxAlpha))
+    print("animScale: " .. tostring(animScale))
+    print("iconSize: " .. tostring(iconSize))
+    print("holdTime: " .. tostring(holdTime))
+    print("showSpellName: " .. tostring(showSpellName))
+    print("================================")
 end
 
 -- Obtener configuración actual
