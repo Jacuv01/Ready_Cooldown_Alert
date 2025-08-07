@@ -90,27 +90,37 @@ function MainFrame:StartAnimation(animation)
     if not animation then return end
     
     -- Asegurar que el frame esté disponible para animaciones normales
-    if not frame:IsShown() then
+    if frame and not frame:IsShown() then
         frame:Show()
     end
     
-    -- Configurar textura
-    if animation.texture then
-        texture:SetTexture(animation.texture)
+    -- Configurar textura usando TextureValidator
+    if texture then
+        if _G.TextureValidator then
+            _G.TextureValidator:SafeSetTexture(texture, animation.texture, "StartAnimation")
+        else
+            -- Fallback básico si TextureValidator no está disponible
+            local validTexture = animation.texture or 135808
+            texture:SetTexture(validTexture)
+        end
     end
     
     -- Configurar texto del nombre
-    if animation.name and ReadyCooldownAlertDB and ReadyCooldownAlertDB.showSpellName ~= false then
-        textFrame:SetText(animation.name)
-    else
-        textFrame:SetText("")
+    if textFrame then
+        if animation.name and ReadyCooldownAlertDB and ReadyCooldownAlertDB.showSpellName ~= false then
+            textFrame:SetText(animation.name)
+        else
+            textFrame:SetText("")
+        end
     end
     
     -- Aplicar color overlay para mascotas
-    if animation.isPet and ReadyCooldownAlertDB and ReadyCooldownAlertDB.petOverlay then
-        texture:SetVertexColor(unpack(ReadyCooldownAlertDB.petOverlay))
-    else
-        texture:SetVertexColor(1, 1, 1)
+    if texture then
+        if animation.isPet and ReadyCooldownAlertDB and ReadyCooldownAlertDB.petOverlay then
+            texture:SetVertexColor(unpack(ReadyCooldownAlertDB.petOverlay))
+        else
+            texture:SetVertexColor(1, 1, 1)
+        end
     end
 end
 
@@ -119,17 +129,17 @@ function MainFrame:UpdateAnimation(animationData)
     if not animationData or not frame then return end
     
     -- Actualizar alpha
-    if animationData.alpha then
+    if animationData.alpha and frame then
         frame:SetAlpha(animationData.alpha)
     end
     
     -- Actualizar escala
-    if animationData.width and animationData.height then
+    if animationData.width and animationData.height and frame then
         frame:SetSize(animationData.width, animationData.height)
     end
     
     -- Aplicar color overlay si es mascota
-    if animationData.petOverlay then
+    if animationData.petOverlay and texture then
         texture:SetVertexColor(unpack(animationData.petOverlay))
     end
 end
@@ -138,10 +148,22 @@ end
 function MainFrame:EndAnimation()
     if not frame then return end
     
-    -- Limpiar contenido
-    texture:SetTexture(nil)
-    textFrame:SetText("")
-    texture:SetVertexColor(1, 1, 1)
+    -- Limpiar contenido usando TextureValidator
+    if texture then
+        if _G.TextureValidator then
+            _G.TextureValidator:SafeSetTexture(texture, nil, "EndAnimation", "")
+        else
+            texture:SetTexture("")
+        end
+    end
+    
+    if textFrame then
+        textFrame:SetText("")
+    end
+    
+    if texture then
+        texture:SetVertexColor(1, 1, 1)
+    end
     
     -- Ocultar frame
     frame:SetAlpha(0)
@@ -155,10 +177,21 @@ function MainFrame:ShowForPositioning()
     end
     
     -- Mostrar frame con textura de ejemplo
-    frame:Show()
-    frame:SetAlpha(0.7)
-    texture:SetTexture(135808) -- Textura de ejemplo (Pyroblast)
-    textFrame:SetText("Position Preview")
+    if frame then
+        frame:Show()
+        frame:SetAlpha(0.7)
+    end
+    
+    -- Configurar textura de ejemplo usando TextureValidator
+    if _G.TextureValidator and texture then
+        _G.TextureValidator:SafeSetTexture(texture, 135808, "ShowForPositioning")
+    elseif texture then
+        texture:SetTexture(135808) -- Textura de ejemplo (Pyroblast)
+    end
+    
+    if textFrame then
+        textFrame:SetText("Position Preview")
+    end
     
     -- Actualizar posición desde sliders
     self:UpdatePosition()
@@ -168,10 +201,20 @@ end
 function MainFrame:HideFromPositioning()
     if not frame then return end
     
-    -- Limpiar contenido
-    texture:SetTexture(nil)
-    textFrame:SetText("")
-    texture:SetVertexColor(1, 1, 1)
+    -- Limpiar contenido usando TextureValidator
+    if _G.TextureValidator and texture then
+        _G.TextureValidator:SafeSetTexture(texture, nil, "HideFromPositioning", "")
+    elseif texture then
+        texture:SetTexture("")
+    end
+    
+    if textFrame then
+        textFrame:SetText("")
+    end
+    
+    if texture then
+        texture:SetVertexColor(1, 1, 1)
+    end
     
     -- Ocultar frame completamente
     frame:Hide()
@@ -230,8 +273,10 @@ function MainFrame:ResetPosition()
         self:Initialize()
     end
     
-    frame:ClearAllPoints()
-    frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    if frame then
+        frame:ClearAllPoints()
+        frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+    end
     
     -- Actualizar configuración
     if ReadyCooldownAlertDB then

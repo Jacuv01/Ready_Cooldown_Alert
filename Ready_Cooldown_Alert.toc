@@ -29,6 +29,9 @@ Modules\Logic\CooldownProcessor.lua
 Modules\Logic\OptionsLogic.lua
 Modules\Logic\LogicManager.lua
 
+# Utils Layer - Utilitarios compartidos
+Modules\Utils\TextureValidator.lua
+
 # UI Layer - Interfaz
 Modules\UI\MainFrame.lua
 Modules\UI\Components\LayoutManager.lua

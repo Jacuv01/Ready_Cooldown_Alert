@@ -48,8 +48,14 @@ end
 -- Añadir animación a la cola
 function AnimationProcessor:QueueAnimation(texture, isPet, name, uniqueId)
     
+    -- Validar textura usando TextureValidator
+    local validTexture = texture
+    if _G.TextureValidator then
+        validTexture = _G.TextureValidator:GetValidTexture(texture, "AnimationProcessor_QueueAnimation")
+    end
+    
     local animation = {
-        texture = texture,
+        texture = validTexture,
         isPet = isPet,
         name = name,
         uniqueId = uniqueId,
@@ -164,12 +170,18 @@ function AnimationProcessor:OnUpdate(update)
     else
         -- Calcular estado actual de la animación
         local animationData = self:CalculateAnimationState(runtimer, totalTime)
-        self:NotifyUIUpdate(animationData)
+        if animationData then
+            self:NotifyUIUpdate(animationData)
+        end
     end
 end
 
 -- Calcular el estado actual de la animación
 function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
+    if not currentAnimation then
+        return nil
+    end
+    
     local selectedAnimationId = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
     
     -- Usar AnimationData si está disponible
@@ -179,9 +191,15 @@ function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
             -- Aplicar configuraciones de escala e icono
             local finalScale = iconSize * animationState.scale
             
+            -- Validar textura usando TextureValidator
+            local validTexture = currentAnimation.texture
+            if _G.TextureValidator then
+                validTexture = _G.TextureValidator:GetValidTexture(currentAnimation.texture, "AnimationProcessor_CalculateState")
+            end
+            
             return {
-                texture = currentAnimation.texture,
-                isPet = currentAnimation.isPet,
+                texture = validTexture,
+                isPet = currentAnimation.isPet or false,
                 name = showSpellName and currentAnimation.name or nil,
                 alpha = animationState.alpha,
                 scale = finalScale,
@@ -212,9 +230,15 @@ function AnimationProcessor:CalculateAnimationState(currentTime, totalTime)
     -- Calcular escala progresiva
     local scale = iconSize + (iconSize * ((animScale - 1) * (currentTime / totalTime)))
     
+    -- Validar textura usando TextureValidator
+    local validTexture = currentAnimation.texture
+    if _G.TextureValidator then
+        validTexture = _G.TextureValidator:GetValidTexture(currentAnimation.texture, "AnimationProcessor_CalculateState_Fallback")
+    end
+    
     return {
-        texture = currentAnimation.texture,
-        isPet = currentAnimation.isPet,
+        texture = validTexture,
+        isPet = currentAnimation.isPet or false,
         name = showSpellName and currentAnimation.name or nil,
         alpha = alpha,
         scale = scale,
@@ -233,7 +257,7 @@ function AnimationProcessor:IsAnimatingSpellName(name)
     end
     
     for _, animation in ipairs(animationQueue) do
-        if animation.name == name then
+        if animation and animation.name == name then
             return true
         end
     end
