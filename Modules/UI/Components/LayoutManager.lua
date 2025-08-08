@@ -48,11 +48,28 @@ function LayoutManager:GetPositionButtonPosition()
     local positionSection = self:GetPositionSlidersPosition()
     local sectionEndY = positionSection.startY - (positionSection.sliderCount * SLIDER_HEIGHT)
     
+    -- Calcular posición para botón Unlock (lado izquierdo)
+    local buttonSpacing = 20
+    local buttonX = (WINDOW_WIDTH / 2) - (BUTTON_WIDTH / 2) - buttonSpacing
+    
     return {
         y = sectionEndY - 15, -- 15px separación después de sliders
-        x = (WINDOW_WIDTH - BUTTON_WIDTH) / 2, -- Centrado
+        x = buttonX,
         buttonWidth = BUTTON_WIDTH,
         buttonHeight = BUTTON_HEIGHT
+    }
+end
+
+-- Nueva función para posición del checkbox Show Spell Names (al lado del Unlock)
+function LayoutManager:GetShowSpellNamesCheckboxPosition()
+    local positionButtonPos = self:GetPositionButtonPosition()
+    local checkboxSpacing = 20
+    local checkboxX = positionButtonPos.x + BUTTON_WIDTH + checkboxSpacing
+    
+    return {
+        y = positionButtonPos.y,
+        x = checkboxX,
+        spacing = 30
     }
 end
 
@@ -109,8 +126,8 @@ function LayoutManager:GetCheckboxesPosition(animationSliderCount)
 end
 
 function LayoutManager:GetEditBoxesPosition(animationSliderCount)
-    local checkboxPos = self:GetCheckboxesPosition(animationSliderCount)
-    local startY = checkboxPos.startY - 80 -- Después de checkboxes
+    local buttonsPos = self:GetAnimationButtonsPosition(animationSliderCount)
+    local startY = buttonsPos.y - BUTTON_HEIGHT - SECTION_SPACING -- Después de botones
     
     return {
         startY = startY,

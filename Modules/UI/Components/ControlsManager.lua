@@ -17,12 +17,12 @@ end
 
 -- Crear checkboxes
 function ControlsManager:CreateCheckboxes(parentFrame, sliderCount)
-    local position = _G.LayoutManager:GetCheckboxesPosition(sliderCount)
-    local yOffset = position.startY
+    -- Usar la nueva posición al lado del botón Unlock
+    local position = _G.LayoutManager:GetShowSpellNamesCheckboxPosition()
     
     -- Checkbox para mostrar nombres de hechizos
     local showNameCB = CreateFrame("CheckButton", "RCAShowNameCheckbox", parentFrame, "ChatConfigCheckButtonTemplate")
-    showNameCB:SetPoint("TOPLEFT", position.x, yOffset)
+    showNameCB:SetPoint("TOPLEFT", position.x, position.y)
     showNameCB.Text:SetText("Show Spell Names")
     
     -- Configurar valor inicial
@@ -40,7 +40,6 @@ function ControlsManager:CreateCheckboxes(parentFrame, sliderCount)
     end)
     
     checkboxes.showSpellName = showNameCB
-    yOffset = yOffset - position.spacing
     
     -- NOTA: Whitelist/Filter checkbox movido a FiltersUI en pestaña separada
 end
