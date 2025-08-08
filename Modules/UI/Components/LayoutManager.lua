@@ -37,15 +37,15 @@ function LayoutManager:GetAnimationDropdownPosition()
     
     return {
         startY = startY,
-        x = 20
+        x = 40
     }
 end
 
 -- SECCIÓN 3: SLIDERS DE ANIMACIÓN (Bottom)
 function LayoutManager:GetAnimationSlidersPosition(animationSliderCount)
     local dropdownPos = self:GetAnimationDropdownPosition()
-    local startY = dropdownPos.startY - 30 -- 30px después del dropdown
-    
+    local startY = dropdownPos.startY - 35 -- 35px después del dropdown
+
     return {
         startY = startY,
         sliderHeight = SLIDER_HEIGHT,

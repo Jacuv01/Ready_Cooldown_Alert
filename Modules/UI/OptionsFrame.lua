@@ -51,20 +51,40 @@ function OptionsFrame:CreateMainFrame()
     optionsFrame = CreateFrame("MessageFrame", "ReadyCooldownAlertOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
     optionsFrame:SetSize(400, 900)
     optionsFrame:SetPoint("CENTER")
-    optionsFrame:SetFrameStrata("BACKGROUND")
+    optionsFrame:SetFrameStrata("LOW")
     optionsFrame:SetMovable(true)
     optionsFrame:EnableMouse(true)
     optionsFrame:RegisterForDrag("LeftButton")
+    
+    -- Hacer el frame focusable para recibir eventos de teclado, pero sin bloquear movimiento
+    optionsFrame:EnableKeyboard(true)
+    optionsFrame:SetScript("OnShow", function(self)
+        -- No obtener foco automáticamente para permitir movimiento
+        -- El foco se manejará solo cuando sea necesario
+    end)
+    
+    -- Manejar clicks para quitar foco y permitir movimiento
+    optionsFrame:SetScript("OnMouseDown", function(self, button)
+        if button == "LeftButton" then
+            self:ClearFocus() -- Quitar foco para permitir movimiento
+        end
+    end)
     optionsFrame:SetScript("OnDragStart", optionsFrame.StartMoving)
     optionsFrame:SetScript("OnDragStop", optionsFrame.StopMovingOrSizing)
     
-    -- Permitir cerrar con Escape
+    -- Permitir cerrar con Escape sin abrir el menú del juego
+    -- Método 1: Registrar en UISpecialFrames (método estándar de WoW)
+    table.insert(UISpecialFrames, "ReadyCooldownAlertOptionsFrame")
+    
+    -- Método 2: Handler personalizado que SOLO maneja ESC
     optionsFrame:SetScript("OnKeyDown", function(self, key)
         if key == "ESCAPE" then
             self:Hide()
+            return -- No propagar ESC
         end
+        -- Para cualquier otra tecla, propagar al sistema (permite movimiento)
     end)
-    optionsFrame:SetPropagateKeyboardInput(true)
+    optionsFrame:SetPropagateKeyboardInput(true) -- Permitir propagación de otras teclas
     
     -- Título
     optionsFrame.title = optionsFrame:CreateFontString(nil, "OVERLAY")
