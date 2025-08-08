@@ -18,35 +18,51 @@ eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 eventFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
 
+-- Cargar configuración específica de la animación al inicializar
+local function InitializeAnimationConfiguration()
+    if not ReadyCooldownAlertDB or not _G.OptionsLogic then
+        print("|cffFF0000RCA Debug|r: InitializeAnimationConfiguration - Missing dependencies")
+        return
+    end
+    
+    -- Primero, asegurar que la configuración básica esté inicializada
+    _G.OptionsLogic:InitializeDefaultConfig()
+    
+    -- Obtener la animación seleccionada
+    local selectedAnimation = ReadyCooldownAlertDB.selectedAnimation or "pulse"
+    
+    -- Cargar configuración específica de esta animación (esto cargará los valores guardados o usará defaults)
+    _G.OptionsLogic:LoadAnimationConfiguration(selectedAnimation)
+    
+    print("|cff00ff00RCA|r: Configuración cargada para animación:", selectedAnimation)
+end
+
 -- Inicializar SavedVariables por defecto
 local function InitializeDatabase()
     if not ReadyCooldownAlertDB then
         ReadyCooldownAlertDB = {}
     end
     
-    -- Configuración por defecto
-    local defaults = {
-        fadeInTime = 0.1,     -- Reducido de 0.3 a 0.1
-        fadeOutTime = 0.2,    -- Reducido de 0.7 a 0.2  
-        maxAlpha = 0.7,
-        animScale = 1.5,
-        iconSize = 75,
-        holdTime = 0.3,       -- Reducido de 0 a 0.3 para que sea visible
+    -- Solo inicializar estructura básica si no existe
+    local structureDefaults = {
+        selectedAnimation = "pulse",
+        animationConfigs = {},
         showSpellName = true,
         ignoredSpells = "",
         invertIgnored = false,
-        remainingCooldownWhenNotified = 1.0,  -- Alertar cuando falta 1 segundo (mínimo recomendado)
-        petOverlay = {1, 1, 1},
-        x = nil, -- Posición será configurada por MainFrame
-        y = nil
+        petOverlay = {1, 1, 1}
     }
     
-    -- Aplicar valores por defecto solo si no existen
-    for key, value in pairs(defaults) do
+    -- Aplicar solo estructura básica si no existe
+    for key, value in pairs(structureDefaults) do
         if ReadyCooldownAlertDB[key] == nil then
             ReadyCooldownAlertDB[key] = value
         end
     end
+    
+    -- Asegurar que valores importantes no se sobrescriban con nils
+    -- (los valores de sliders se manejan en OptionsLogic:InitializeDefaultConfig)
+    print("|cff00ffff RCA Debug|r: InitializeDatabase completed - iconSize is", ReadyCooldownAlertDB.iconSize)
 end
 
 -- Inicializar todos los módulos
@@ -126,6 +142,9 @@ local function InitializeModules()
     
     print("|cff00ff00Ready Cooldown Alert|r: Módulos inicializados correctamente")
     
+    -- Cargar configuración específica de la animación seleccionada
+    -- InitializeAnimationConfiguration() -- Removido - ahora se maneja en el dropdown
+    
     -- Debug: Mostrar módulos cargados
     local moduleCount = 0
     for name, module in pairs(RCA.modules) do
@@ -155,6 +174,10 @@ eventFrame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "PLAYER_LOGIN" then
         -- Inicializar módulos después del login
         InitializeModules()
+        
+        -- Cargar configuración específica de la animación seleccionada después de que todos los módulos estén listos
+        InitializeAnimationConfiguration()
+        
         RCA.isLoaded = true
         
     elseif event == "PLAYER_ENTERING_WORLD" then

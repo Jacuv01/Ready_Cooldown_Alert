@@ -12,8 +12,11 @@ local controlsManager = nil
 -- Referencias a elementos de UI
 local uiElements = {}
 
--- Estado de edición de posición
-local isEditingPosition = false
+-- Estado de edición
+local isEditing = false
+
+-- Estado de unlock para position e iconSize
+local isUnlocked = false
 
 -- Inicializar panel de opciones
 function OptionsFrame:Initialize()
@@ -48,12 +51,20 @@ function OptionsFrame:CreateMainFrame()
     optionsFrame = CreateFrame("MessageFrame", "ReadyCooldownAlertOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
     optionsFrame:SetSize(400, 900)
     optionsFrame:SetPoint("CENTER")
-    optionsFrame:SetFrameStrata("DIALOG")
+    optionsFrame:SetFrameStrata("BACKGROUND")
     optionsFrame:SetMovable(true)
     optionsFrame:EnableMouse(true)
     optionsFrame:RegisterForDrag("LeftButton")
     optionsFrame:SetScript("OnDragStart", optionsFrame.StartMoving)
     optionsFrame:SetScript("OnDragStop", optionsFrame.StopMovingOrSizing)
+    
+    -- Permitir cerrar con Escape
+    optionsFrame:SetScript("OnKeyDown", function(self, key)
+        if key == "ESCAPE" then
+            self:Hide()
+        end
+    end)
+    optionsFrame:SetPropagateKeyboardInput(true)
     
     -- Título
     optionsFrame.title = optionsFrame:CreateFontString(nil, "OVERLAY")
@@ -94,23 +105,40 @@ end
 
 -- Inicializar estado
 function OptionsFrame:InitializeState()
-    isEditingPosition = false
+    isEditing = false
+    isUnlocked = false
+    
     if sliderManager then
-        sliderManager:SetPositionSlidersEnabled(false)
+        -- Deshabilitar todos los sliders por defecto
+        sliderManager:SetAnimationSlidersEnabled(false)
+        sliderManager:SetPositionAndSizeSlidersEnabled(false)
+    end
+    
+    -- Asegurar que la ventana inicie oculta
+    if optionsFrame then
+        optionsFrame:Hide()
     end
 end
 
--- Activar/Desactivar sliders de posición
-function OptionsFrame:SetPositionSlidersEnabled(enabled)
+-- Activar/Desactivar sliders de animación (Edit/Save)
+function OptionsFrame:SetAnimationSlidersEnabled(enabled)
     if sliderManager then
-        sliderManager:SetPositionSlidersEnabled(enabled)
+        sliderManager:SetAnimationSlidersEnabled(enabled)
     end
-    isEditingPosition = enabled
+    isEditing = enabled
 end
 
--- Verificar si está en modo de edición de posición
-function OptionsFrame:IsEditingPosition()
-    return isEditingPosition
+-- Activar/Desactivar sliders de posición e iconSize (Unlock/Lock)
+function OptionsFrame:SetPositionAndSizeSlidersEnabled(enabled)
+    if sliderManager then
+        sliderManager:SetPositionAndSizeSlidersEnabled(enabled)
+    end
+    isUnlocked = enabled
+end
+
+-- Verificar si está en modo de edición
+function OptionsFrame:IsEditing()
+    return isEditing
 end
 
 -- Actualizar sliders según la animación seleccionada
@@ -161,20 +189,60 @@ function OptionsFrame:OnTestClicked()
     end
 end
 
--- Manejar click en botón Unlock/Lock
-function OptionsFrame:OnUnlockClicked()
-    local button = buttonManager and buttonManager:GetButton("unlockButton")
-    if not button or not _G.OptionsLogic then return end
+-- Manejar click en botón Edit/Save (solo para sliders de animación)
+function OptionsFrame:OnEditSaveClicked()
+    if not buttonManager or not _G.OptionsLogic then return end
     
-    -- Usar OptionsLogic para manejar la lógica
-    local newState = _G.OptionsLogic:OnUnlockClicked(isEditingPosition)
-    isEditingPosition = newState
-    
-    -- Actualizar interfaz
-    if buttonManager then
-        buttonManager:UpdateUnlockButton(isEditingPosition)
+    if isEditing then
+        -- Modo Save: Guardar configuración actual de la animación seleccionada
+        local currentAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+        _G.OptionsLogic:SaveAnimationConfiguration(currentAnimation)
+        
+        -- Salir del modo edición
+        isEditing = false
+        self:SetAnimationSlidersEnabled(false)
+        buttonManager:UpdateEditButton(false)
+    else
+        -- Modo Edit: Habilitar sliders de animación para edición
+        local currentAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+        
+        -- Entrar en modo edición
+        isEditing = true
+        self:SetAnimationSlidersEnabled(true)
+        buttonManager:UpdateEditButton(true)
+        
+        -- SOLO actualizar la interfaz sin recargar la configuración
+        -- No llamar a LoadAnimationConfiguration para mantener valores actuales
+        self:RefreshValues()
+        -- No llamar a UpdateSlidersForAnimation aquí ya que RefreshValues es suficiente
     end
-    self:SetPositionSlidersEnabled(isEditingPosition)
+end
+
+-- Manejar click en botón Unlock/Lock (para position e iconSize)
+function OptionsFrame:OnUnlockClicked()
+    if not buttonManager or not _G.OptionsLogic then return end
+    
+    if isUnlocked then
+        -- Modo Lock: Deshabilitar sliders de posición e iconSize
+        isUnlocked = false
+        self:SetPositionAndSizeSlidersEnabled(false)
+        buttonManager:UpdateUnlockButton(false)
+        
+        -- Ocultar el icono de posicionamiento
+        if _G.MainFrame then
+            _G.MainFrame:HideFromPositioning()
+        end
+    else
+        -- Modo Unlock: Habilitar sliders de posición e iconSize
+        isUnlocked = true
+        self:SetPositionAndSizeSlidersEnabled(true)
+        buttonManager:UpdateUnlockButton(true)
+        
+        -- Mostrar el icono para posicionamiento
+        if _G.MainFrame then
+            _G.MainFrame:ShowForPositioning()
+        end
+    end
 end
 
 -- Manejar click en botón Reset Animation
@@ -217,16 +285,23 @@ end
 
 -- Manejar click en botón Close
 function OptionsFrame:OnCloseClicked()
-    -- Si está en modo edición (unlocked), hacer lock primero
-    if isEditingPosition and _G.OptionsLogic then
-        local newState = _G.OptionsLogic:OnCloseClicked(isEditingPosition)
-        isEditingPosition = newState
+    -- Si está en modo edición, salir del modo edición
+    if isEditing and buttonManager then
+        isEditing = false
+        buttonManager:UpdateEditButton(false)
+        self:SetAnimationSlidersEnabled(false)
+    end
+    
+    -- Si está en modo unlocked, salir del modo unlocked
+    if isUnlocked and buttonManager then
+        isUnlocked = false
+        buttonManager:UpdateUnlockButton(false)
+        self:SetPositionAndSizeSlidersEnabled(false)
         
-        -- Actualizar el botón unlock para mostrar el estado correcto
-        if buttonManager then
-            buttonManager:UpdateUnlockButton(false)
+        -- Ocultar el icono de posicionamiento
+        if _G.MainFrame then
+            _G.MainFrame:HideFromPositioning()
         end
-        self:SetPositionSlidersEnabled(false)
     end
     
     -- Cerrar la ventana

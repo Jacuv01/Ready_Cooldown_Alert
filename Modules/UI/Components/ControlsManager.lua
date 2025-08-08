@@ -120,18 +120,37 @@ local function InitializeAnimationDropdown(self, level)
             UIDropDownMenu_SetSelectedValue(dropdowns.animationType, animation.value)
             UIDropDownMenu_SetText(dropdowns.animationType, animation.text)
             
-            -- Guardar selección
+            -- PRIMERO: Guardar configuración actual ANTES de cambiar (si hay una animación previa)
+            local previousAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation
+            if previousAnimation and previousAnimation ~= animation.value and _G.OptionsLogic then
+                _G.OptionsLogic:SaveAnimationConfiguration(previousAnimation)
+                print("|cff00ff00RCA Debug|r: Guardando configuración de", previousAnimation, "antes de cambiar a", animation.value)
+            end
+            
+            -- SEGUNDO: Guardar nueva selección
             if ReadyCooldownAlertDB then
                 ReadyCooldownAlertDB.selectedAnimation = animation.value
+                print("|cff00ff00RCA Debug|r: Updated selectedAnimation to", animation.value)
                 if _G.OptionsFrame then
                     _G.OptionsFrame:OnConfigChanged("selectedAnimation", animation.value)
                 end
             end
             
-            -- Actualizar sliders con configuración específica de la animación seleccionada
-            if _G.SliderManager then
-                _G.SliderManager:UpdateSlidersForAnimation(animation.value)
+            -- TERCERO: Cargar configuración específica de la nueva animación seleccionada
+            if _G.OptionsLogic then
+                _G.OptionsLogic:LoadAnimationConfiguration(animation.value)
             end
+            
+            -- CUARTO: Refrescar valores en la interfaz DESPUÉS de cargar (con pequeño delay para timing)
+            C_Timer.After(0.05, function()
+                if _G.OptionsFrame then
+                    _G.OptionsFrame:RefreshValues()
+                end
+                if _G.SliderManager then
+                    _G.SliderManager:RefreshValues()
+                end
+                print("|cff00ff00RCA Debug|r: UI refreshed for animation", animation.value)
+            end)
         end
         UIDropDownMenu_AddButton(info, level)
     end

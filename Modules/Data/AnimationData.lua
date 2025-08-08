@@ -12,7 +12,6 @@ AnimationData.animations = {
             fadeOutTime = 0.2,
             maxAlpha = 0.7,
             animScale = 1.5,
-            iconSize = 75,
             remainingCooldownWhenNotified = 1.0
         },
         config = {
@@ -75,8 +74,7 @@ AnimationData.animations = {
             holdTime = 0.4,
             fadeOutTime = 0.3,
             maxAlpha = 0.8,
-            animScale = 2.0,
-            iconSize = 80,
+            animScale = 1.4,
             remainingCooldownWhenNotified = 1.5
         },
         config = {
@@ -142,7 +140,6 @@ AnimationData.animations = {
             fadeOutTime = 0.4,
             maxAlpha = 0.9,
             animScale = 1.2,
-            iconSize = 70,
             remainingCooldownWhenNotified = 0.8
         },
         config = {
@@ -204,7 +201,6 @@ AnimationData.animations = {
             fadeOutTime = 0.15,
             maxAlpha = 0.6,
             animScale = 2.5,
-            iconSize = 90,
             remainingCooldownWhenNotified = 2.0
         },
         config = {
@@ -270,7 +266,6 @@ AnimationData.animations = {
             fadeOutTime = 0.35,
             maxAlpha = 0.85,
             animScale = 1.3,
-            iconSize = 65,
             remainingCooldownWhenNotified = 0.5
         },
         config = {
@@ -287,6 +282,7 @@ AnimationData.animations = {
                 local fadeInTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeInTime) or 0.25
                 local holdTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.holdTime) or 0.6
                 local fadeOutTime = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.fadeOutTime) or 0.35
+                local userAnimScale = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.animScale) or 1.3
                 
                 local phase = "hold"
                 local alpha = userMaxAlpha
@@ -310,9 +306,11 @@ AnimationData.animations = {
                     local alphaPulseIntensity = 0.3 -- 30% de variación
                     alpha = userMaxAlpha * (1.0 - alphaPulseIntensity + (alphaPulseIntensity * (pulseValue + 1) / 2))
                     
-                    -- Scale pulsa entre 1.0 y 1.2 (20% más grande que el tamaño normal)
-                    local scalePulseIntensity = 0.2 -- 20% de variación en escala
-                    scale = 1.0 + scalePulseIntensity * (pulseValue + 1) / 2
+                    -- Scale pulsa entre el tamaño base y el animScale del usuario
+                    -- El pulso va desde 1.0 hasta userAnimScale
+                    local basePulseScale = 1.0
+                    local maxPulseScale = userAnimScale
+                    scale = basePulseScale + ((maxPulseScale - basePulseScale) * (pulseValue + 1) / 2)
                 else
                     -- Fade Out - se desvanece manteniendo el tamaño normal
                     phase = "fadeOut"

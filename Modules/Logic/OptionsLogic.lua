@@ -121,6 +121,9 @@ function OptionsLogic:OnConfigChanged(key, value)
     -- Actualizar la base de datos
     if ReadyCooldownAlertDB then
         ReadyCooldownAlertDB[key] = validatedValue
+        print("|cff00ff00RCA Debug|r: Saved to DB -", key, "=", validatedValue)
+    else
+        print("|cffFF0000RCA Debug|r: ReadyCooldownAlertDB is nil!")
     end
     
     -- Notificar a otros módulos que la configuración cambió
@@ -136,7 +139,17 @@ function OptionsLogic:OnConfigChanged(key, value)
         MainFrame:UpdatePosition()
         
         -- Si estamos en modo de edición, asegurar que el icono siga visible
-        if OptionsFrame and OptionsFrame:IsEditingPosition() then
+        if OptionsFrame and OptionsFrame:IsEditing() then
+            MainFrame:ShowForPositioning()
+        end
+    end
+    
+    -- Actualizar tamaño del MainFrame si cambió iconSize
+    if key == "iconSize" and MainFrame then
+        MainFrame:UpdateSize()
+        
+        -- Si estamos en modo de edición, asegurar que el icono siga visible
+        if OptionsFrame and OptionsFrame:IsEditing() then
             MainFrame:ShowForPositioning()
         end
     end
@@ -146,10 +159,23 @@ end
 
 -- Manejar click en botón Test
 function OptionsLogic:OnTestClicked()
-    if AnimationProcessor then
-        AnimationProcessor:TestAnimation()
-    elseif MainFrame then
-        MainFrame:TestAnimation()
+    print("|cff00ffff RCA Debug|r: Test button clicked")
+    
+    -- Verificar que tenemos la animación seleccionada
+    local selectedAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
+    print("|cff00ffff RCA Debug|r: Selected animation:", selectedAnimation)
+    
+    -- Priorizar AnimationProcessor
+    if _G.AnimationProcessor then
+        print("|cff00ff00RCA Debug|r: Using AnimationProcessor:TestAnimation()")
+        _G.AnimationProcessor:TestAnimation()
+    elseif _G.MainFrame then
+        print("|cff00ff00RCA Debug|r: Using MainFrame:TestAnimation()")
+        _G.MainFrame:TestAnimation()
+    else
+        print("|cffFF0000RCA Debug|r: Neither AnimationProcessor nor MainFrame available!")
+        -- Fallback: mostrar mensaje al usuario
+        print("|cffFF0000RCA Error|r: Animation system not available. Try reloading the addon.")
     end
 end
 
@@ -243,7 +269,15 @@ function OptionsLogic:GetConfigValue(key)
     for _, config in ipairs(sliderConfigs) do
         if config.key == key then
             local _, _, defaultVal = self:CalculateDynamicValues(config)
-            return (ReadyCooldownAlertDB and ReadyCooldownAlertDB[key]) or defaultVal
+            local dbValue = ReadyCooldownAlertDB and ReadyCooldownAlertDB[key]
+            local finalValue = dbValue or defaultVal
+            
+            -- Debug para iconSize específicamente
+            if key == "iconSize" then
+                print("|cff00ffff RCA Debug|r: GetConfigValue for iconSize - DB value:", dbValue, "Default:", defaultVal, "Final:", finalValue)
+            end
+            
+            return finalValue
         end
     end
     
@@ -284,8 +318,13 @@ end
 
 -- Inicializar configuración por defecto si no existe
 function OptionsLogic:InitializeDefaultConfig()
+    print("|cff00ffff RCA Debug|r: InitializeDefaultConfig called")
+    
     if not ReadyCooldownAlertDB then
         ReadyCooldownAlertDB = {}
+        print("|cff00ffff RCA Debug|r: Created new ReadyCooldownAlertDB")
+    else
+        print("|cff00ffff RCA Debug|r: ReadyCooldownAlertDB exists")
     end
     
     -- Solo inicializar valores que no existen
@@ -293,6 +332,9 @@ function OptionsLogic:InitializeDefaultConfig()
         if ReadyCooldownAlertDB[config.key] == nil then
             local _, _, defaultVal = self:CalculateDynamicValues(config)
             ReadyCooldownAlertDB[config.key] = defaultVal
+            print("|cffffff00RCA Debug|r: InitializeDefaultConfig - Set", config.key, "=", defaultVal, "(was nil)")
+        else
+            print("|cff00ffff RCA Debug|r: InitializeDefaultConfig - Keeping", config.key, "=", ReadyCooldownAlertDB[config.key], "(already exists)")
         end
     end
     
@@ -309,6 +351,98 @@ function OptionsLogic:InitializeDefaultConfig()
     if ReadyCooldownAlertDB.selectedAnimation == nil then
         ReadyCooldownAlertDB.selectedAnimation = "pulse"
     end
+end
+
+-- Cargar configuración específica de una animación
+function OptionsLogic:LoadAnimationConfiguration(animationType)
+    if not ReadyCooldownAlertDB or not AnimationData then
+        print("|cffFF0000RCA Debug|r: LoadAnimationConfiguration - Missing dependencies")
+        return
+    end
+    
+    -- Obtener la configuración de la animación seleccionada
+    local animationData = AnimationData:GetAnimation(animationType)
+    if not animationData or not animationData.defaultValues then
+        print("|cffFF0000RCA Debug|r: LoadAnimationConfiguration - No animation data for:", animationType)
+        return
+    end
+    
+    -- Verificar si hay configuración guardada para esta animación
+    local savedConfig = ReadyCooldownAlertDB.animationConfigs and ReadyCooldownAlertDB.animationConfigs[animationType]
+    
+    if savedConfig then
+        print("|cff00ff00RCA Debug|r: Loading saved config for", animationType)
+    else
+        print("|cffffff00RCA Debug|r: No saved config for", animationType, "- using defaults")
+    end
+    
+    -- Cargar los valores específicos de esta animación en ReadyCooldownAlertDB
+    -- EXCLUIR valores de posición e iconSize que deben ser compartidos entre animaciones
+    for key, defaultValue in pairs(animationData.defaultValues) do
+        -- Saltar sliders de posición e iconSize - estos se comparten entre animaciones
+        if key ~= "positionX" and key ~= "positionY" and key ~= "iconSize" then
+            if savedConfig and savedConfig[key] ~= nil then
+                -- Usar valor guardado si existe
+                ReadyCooldownAlertDB[key] = savedConfig[key]
+                print("|cff00ff00RCA Debug|r: Loaded", key, "=", savedConfig[key], "(saved)")
+            else
+                -- Si no hay configuración guardada, usar el default específico de esta animación
+                ReadyCooldownAlertDB[key] = defaultValue
+                print("|cffffff00RCA Debug|r: Set", key, "=", defaultValue, "(animation default)")
+            end
+        else
+            print("|cffff8000RCA Debug|r: Skipping shared value", key, "- current value:", ReadyCooldownAlertDB[key])
+        end
+    end
+    
+    -- Notificar cambios (sin disparar refresh inmediato)
+    -- self:OnConfigChanged("animationLoaded", animationType)
+    print("|cff00ff00RCA Debug|r: LoadAnimationConfiguration completed for", animationType)
+    
+    -- El refresh de la interfaz ahora se maneja desde el dropdown para mejor timing
+    -- if _G.SliderManager then
+    --     _G.SliderManager:RefreshValues()
+    -- end
+end
+
+-- Guardar configuración actual para una animación específica
+function OptionsLogic:SaveAnimationConfiguration(animationType)
+    if not ReadyCooldownAlertDB or not AnimationData then
+        print("|cffFF0000RCA Debug|r: SaveAnimationConfiguration - Missing dependencies")
+        return
+    end
+    
+    -- Obtener la configuración de la animación seleccionada
+    local animationData = AnimationData:GetAnimation(animationType)
+    if not animationData or not animationData.defaultValues then
+        print("|cffFF0000RCA Debug|r: SaveAnimationConfiguration - No animation data for:", animationType)
+        return
+    end
+    
+    -- Crear una nueva estructura para almacenar configuraciones por animación
+    if not ReadyCooldownAlertDB.animationConfigs then
+        ReadyCooldownAlertDB.animationConfigs = {}
+    end
+    
+    -- Guardar la configuración actual para esta animación (SOLO valores específicos de animación)
+    ReadyCooldownAlertDB.animationConfigs[animationType] = {}
+    print("|cff00ff00RCA Debug|r: Saving config for", animationType)
+    
+    for key, _ in pairs(animationData.defaultValues) do
+        -- Saltar sliders de posición e iconSize - estos se comparten entre animaciones
+        if key ~= "positionX" and key ~= "positionY" and key ~= "iconSize" and ReadyCooldownAlertDB[key] ~= nil then
+            ReadyCooldownAlertDB.animationConfigs[animationType][key] = ReadyCooldownAlertDB[key]
+            print("|cff00ff00RCA Debug|r: Saved", key, "=", ReadyCooldownAlertDB[key])
+        end
+    end
+    
+    -- IMPORTANTE: Los valores compartidos (iconSize, positionX, positionY) ya están guardados
+    -- en ReadyCooldownAlertDB directamente, no necesitan guardarse por animación
+    print("|cff00ff00RCA Debug|r: Shared values (iconSize, positionX, positionY) remain in global DB")
+    print("|cff00ff00RCA Debug|r: Current iconSize in DB:", ReadyCooldownAlertDB.iconSize)
+    
+    -- Notificar cambios
+    self:OnConfigChanged("animationSaved", animationType)
 end
 
 -- Exportar globalmente para WoW addon system

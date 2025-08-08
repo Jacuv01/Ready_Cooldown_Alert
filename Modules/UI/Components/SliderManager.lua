@@ -3,19 +3,56 @@ local SliderManager = {}
 -- Referencias locales
 local sliders = {}
 
--- Crear todos los sliders
+-- Crear todos los sliders en el nuevo orden: Primero posición/tamaño, luego animación
 function SliderManager:CreateSliders(parentFrame)
     local sliderConfigs = _G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {}
-    local constants = _G.LayoutManager:GetConstants()
-    local yOffset = constants.SLIDER_START_Y
     
-    for i, config in ipairs(sliderConfigs) do
-        local slider = self:CreateSingleSlider(parentFrame, config, i, yOffset)
-        sliders[config.key] = slider
-        yOffset = yOffset - constants.SLIDER_HEIGHT
-    end
+    -- SECCIÓN 1: Crear sliders de posición y tamaño primero
+    self:CreatePositionAndSizeSliders(parentFrame, sliderConfigs)
+    
+    -- SECCIÓN 2: Crear sliders de animación después
+    self:CreateAnimationSliders(parentFrame, sliderConfigs)
     
     return sliders
+end
+
+-- Crear sliders de posición y tamaño (iconSize, positionX, positionY)
+function SliderManager:CreatePositionAndSizeSliders(parentFrame, sliderConfigs)
+    local positionOrder = {"iconSize", "positionX", "positionY"}
+    local layoutInfo = _G.LayoutManager:GetPositionSlidersPosition()
+    local yOffset = layoutInfo.startY
+    
+    for i, sliderKey in ipairs(positionOrder) do
+        for _, config in ipairs(sliderConfigs) do
+            if config.key == sliderKey then
+                local slider = self:CreateSingleSlider(parentFrame, config, i, yOffset)
+                sliders[config.key] = slider
+                yOffset = yOffset - layoutInfo.sliderHeight
+                break
+            end
+        end
+    end
+end
+
+-- Crear sliders de animación (todos excepto posición y tamaño)
+function SliderManager:CreateAnimationSliders(parentFrame, sliderConfigs)
+    local animationConfigs = {}
+    
+    -- Filtrar solo configuraciones de animación
+    for _, config in ipairs(sliderConfigs) do
+        if config.key ~= "iconSize" and config.key ~= "positionX" and config.key ~= "positionY" then
+            table.insert(animationConfigs, config)
+        end
+    end
+    
+    local layoutInfo = _G.LayoutManager:GetAnimationSlidersPosition(#animationConfigs)
+    local yOffset = layoutInfo.startY
+    
+    for i, config in ipairs(animationConfigs) do
+        local slider = self:CreateSingleSlider(parentFrame, config, i + 3, yOffset) -- +3 porque ya creamos 3 sliders de posición
+        sliders[config.key] = slider
+        yOffset = yOffset - layoutInfo.sliderHeight
+    end
 end
 
 -- Crear un slider individual
@@ -40,11 +77,9 @@ function SliderManager:CreateSingleSlider(parentFrame, config, index, yOffset)
     -- Configurar eventos
     self:SetupSliderEvents(slider, config)
     
-    -- Desactivar sliders de posición por defecto
-    if _G.OptionsLogic and _G.OptionsLogic:ShouldSliderBeDisabled(config.key) then
-        slider:SetEnabled(false)
-        slider:SetAlpha(0.5)
-    end
+    -- Desactivar TODOS los sliders por defecto (se habilitan solo en modo edición)
+    slider:SetEnabled(false)
+    slider:SetAlpha(0.5)
     
     return slider
 end
@@ -90,6 +125,11 @@ function SliderManager:SetupSliderEvents(slider, config)
     -- Habilitar scroll del mouse
     slider:EnableMouseWheel(true)
     slider:SetScript("OnMouseWheel", function(self, delta)
+        -- Solo permitir scroll si el slider está habilitado
+        if not self:IsEnabled() then
+            return
+        end
+        
         local currentValue = self:GetValue()
         local step = _G.OptionsLogic and _G.OptionsLogic:GetMouseWheelStep(config.key) or 0.1
         local newValue = currentValue + (delta * step)
@@ -131,16 +171,11 @@ function SliderManager:UpdateSliderForAnimation(slider, config, animationType)
     local isRelevant = self:IsSliderRelevantForAnimation(config.key, animationType)
     
     if isRelevant then
-        -- Mostrar slider y actualizar su valor si tiene configuración específica
+        -- Mostrar slider
         slider:Show()
         
-        -- Reactivar slider si no es de posición (los de posición se manejan por separado)
-        if not _G.OptionsLogic:ShouldSliderBeDisabled(config.key) then
-            slider:SetEnabled(true)
-            slider:SetAlpha(1.0)
-        end
-        
-        -- Si la animación tiene valores específicos para este slider, aplicarlos
+        -- NO cambiar el estado enabled/disabled aquí - eso se controla por el modo de edición
+        -- Solo actualizar valores si la animación tiene configuración específica
         local animationSpecificValue = self:GetAnimationSpecificValue(animationType, config.key)
         if animationSpecificValue then
             slider:SetValue(animationSpecificValue)
@@ -158,25 +193,25 @@ function SliderManager:UpdateSliderForAnimation(slider, config, animationType)
             end
         end
     else
-        -- Desactivar sliders no relevantes para esta animación (excepto posición que tiene su propia lógica)
-        if not _G.OptionsLogic:ShouldSliderBeDisabled(config.key) then
-            slider:SetAlpha(0.3)
-            slider:SetEnabled(false)
-        else
-            -- Los sliders de posición mantienen su estado actual (controlado por el botón unlock)
-        end
+        -- Ocultar sliders no relevantes para esta animación
+        slider:Hide()
     end
 end
 
 -- Verificar si un slider es relevante para una animación específica
 function SliderManager:IsSliderRelevantForAnimation(sliderKey, animationType)
+    -- Los sliders de posición e iconSize siempre son relevantes para todas las animaciones
+    if sliderKey == "positionX" or sliderKey == "positionY" or sliderKey == "iconSize" then
+        return true
+    end
+    
     -- Mapeo de qué sliders son relevantes para cada animación
     local animationRelevantSliders = {
         pulse = {"fadeInTime", "fadeOutTime", "maxAlpha", "animScale", "iconSize", "holdTime", "remainingCooldownWhenNotified"},
         bounce = {"fadeInTime", "fadeOutTime", "maxAlpha", "animScale", "iconSize", "holdTime", "remainingCooldownWhenNotified"},
         fade = {"fadeInTime", "fadeOutTime", "maxAlpha", "iconSize", "holdTime", "remainingCooldownWhenNotified"},
         zoom = {"fadeInTime", "fadeOutTime", "maxAlpha", "animScale", "iconSize", "holdTime", "remainingCooldownWhenNotified"},
-        glow = {"fadeInTime", "fadeOutTime", "maxAlpha", "iconSize", "holdTime", "remainingCooldownWhenNotified"}
+        glow = {"fadeInTime", "fadeOutTime", "maxAlpha", "animScale", "iconSize", "holdTime", "remainingCooldownWhenNotified"}
     }
     
     local relevantSliders = animationRelevantSliders[animationType]
@@ -206,6 +241,50 @@ function SliderManager:GetAnimationSpecificValue(animationType, sliderKey)
     end
     
     return animationData.defaultValues[sliderKey]
+end
+
+-- Activar/Desactivar todos los sliders
+function SliderManager:SetAllSlidersEnabled(enabled)
+    for key, slider in pairs(sliders) do
+        slider:SetEnabled(enabled)
+        -- Cambiar la apariencia visual para mostrar el estado
+        if enabled then
+            slider:SetAlpha(1.0)
+        else
+            slider:SetAlpha(0.5)
+        end
+    end
+end
+
+-- Activar/Desactivar solo sliders de animación (NO position e iconSize)
+function SliderManager:SetAnimationSlidersEnabled(enabled)
+    for key, slider in pairs(sliders) do
+        if key ~= "positionX" and key ~= "positionY" and key ~= "iconSize" then
+            slider:SetEnabled(enabled)
+            if enabled then
+                slider:SetAlpha(1.0)
+            else
+                slider:SetAlpha(0.5)
+            end
+        end
+    end
+end
+
+-- Activar/Desactivar sliders de posición e iconSize
+function SliderManager:SetPositionAndSizeSlidersEnabled(enabled)
+    local positionSliders = {"positionX", "positionY", "iconSize"}
+    
+    for _, key in ipairs(positionSliders) do
+        local slider = sliders[key]
+        if slider then
+            slider:SetEnabled(enabled)
+            if enabled then
+                slider:SetAlpha(1.0)
+            else
+                slider:SetAlpha(0.5)
+            end
+        end
+    end
 end
 
 -- Activar/Desactivar sliders de posición
@@ -256,10 +335,22 @@ function SliderManager:RefreshValues()
                 slider.High:SetText(tostring(math.floor(maxVal)))
                 
                 local value = _G.OptionsLogic:GetConfigValue(config.key)
+                
+                print("|cff00ffff RCA Debug|r: RefreshValues - Updating slider", config.key, "to", value)
+                
+                -- Deshabilitar temporalmente el OnValueChanged para evitar recursión
+                local originalScript = slider:GetScript("OnValueChanged")
+                slider:SetScript("OnValueChanged", nil)
+                
                 slider:SetValue(value)
+                
+                -- Actualizar el texto manualmente
                 if slider.valueText then
                     slider.valueText:SetText(_G.OptionsLogic:FormatSliderValue(config.key, value))
                 end
+                
+                -- Restaurar el script OnValueChanged
+                slider:SetScript("OnValueChanged", originalScript)
             end
         end
     end

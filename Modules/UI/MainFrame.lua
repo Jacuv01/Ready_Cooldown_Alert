@@ -13,7 +13,11 @@ function MainFrame:Initialize()
     
     -- Crear frame principal
     frame = CreateFrame("Frame", "ReadyCooldownAlertMainFrame", UIParent)
-    frame:SetSize(75, 75) -- Tamaño por defecto
+    
+    -- Establecer tamaño inicial desde la configuración guardada o default
+    local initialSize = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.iconSize) or 75
+    frame:SetSize(initialSize, initialSize)
+    
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
     frame:SetFrameStrata("HIGH")
     frame:SetFrameLevel(100)
@@ -68,6 +72,23 @@ end
 -- Actualizar posición desde sliders (llamado cuando cambian los sliders)
 function MainFrame:UpdatePosition()
     self:LoadPosition()
+end
+
+-- Actualizar tamaño del frame desde sliders (llamado cuando cambia iconSize)
+function MainFrame:UpdateSize()
+    if not frame or not ReadyCooldownAlertDB then
+        return
+    end
+    
+    local newSize = ReadyCooldownAlertDB.iconSize or 75
+    print("|cff00ffff RCA Debug|r: UpdateSize called - setting size to", newSize)
+    frame:SetSize(newSize, newSize)
+    
+    -- Si el frame está visible para posicionamiento, asegurar que se vea el cambio
+    if frame:IsShown() then
+        -- Actualizar posición para mantener centrado si es necesario
+        self:UpdatePosition()
+    end
 end
 
 -- Manejar eventos de animación del AnimationProcessor
@@ -178,6 +199,9 @@ function MainFrame:ShowForPositioning()
         self:Initialize()
     end
     
+    -- Asegurar que el tamaño sea correcto SIEMPRE, incluso después de Initialize()
+    self:UpdateSize()
+    
     -- Mostrar frame con textura de ejemplo
     if frame then
         frame:Show()
@@ -197,6 +221,9 @@ function MainFrame:ShowForPositioning()
     
     -- Actualizar posición desde sliders
     self:UpdatePosition()
+    
+    -- Llamar UpdateSize() de nuevo por si acaso para asegurar el tamaño correcto
+    self:UpdateSize()
 end
 
 -- Ocultar frame del posicionamiento
