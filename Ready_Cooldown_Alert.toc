@@ -9,6 +9,10 @@
 # Core System
 Core\Init.lua
 
+# Utils Layer - Utilitarios compartidos (cargar primero)
+Modules\Utils\AnimationUtils.lua
+Modules\Utils\TextureValidator.lua
+
 # Data Layer - APIs del juego
 Modules\Data\SpellData.lua
 Modules\Data\ItemData.lua
@@ -28,9 +32,6 @@ Modules\Logic\AnimationProcessor.lua
 Modules\Logic\CooldownProcessor.lua
 Modules\Logic\OptionsLogic.lua
 Modules\Logic\LogicManager.lua
-
-# Utils Layer - Utilitarios compartidos
-Modules\Utils\TextureValidator.lua
 
 # UI Layer - Interfaz
 Modules\UI\MainFrame.lua
