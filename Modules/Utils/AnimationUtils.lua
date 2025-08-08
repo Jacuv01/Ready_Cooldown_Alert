@@ -1,6 +1,5 @@
 local AnimationUtils = {}
 
--- Constantes para animaciones
 local ANIMATION_CONSTANTS = {
     MIN_SCALE = 0.1,
     MAX_ALPHA = 1.0,
@@ -15,7 +14,6 @@ local ANIMATION_CONSTANTS = {
     ZOOM_SCALE_START = 0.1
 }
 
--- Obtener configuración del usuario para cualquier animación
 function AnimationUtils:getUserConfig()
     return {
         maxAlpha = (ReadyCooldownAlertDB and ReadyCooldownAlertDB.maxAlpha) or 0.7,
@@ -26,12 +24,10 @@ function AnimationUtils:getUserConfig()
     }
 end
 
--- Calcular progreso de fade con clamp automático
 function AnimationUtils:calculateFadeProgress(currentTime, phaseTime)
     return math.max(0, math.min(1, currentTime / phaseTime))
 end
 
--- Determinar fase actual de la animación
 function AnimationUtils:getCurrentPhase(currentTime, fadeInTime, holdTime)
     if currentTime <= fadeInTime then
         return "fadeIn", currentTime / fadeInTime
@@ -42,7 +38,6 @@ function AnimationUtils:getCurrentPhase(currentTime, fadeInTime, holdTime)
     end
 end
 
--- Aplicar easing curves
 function AnimationUtils:easeInOut(progress)
     return progress * progress * (3 - 2 * progress)
 end
@@ -51,17 +46,14 @@ function AnimationUtils:easeInQuad(progress)
     return progress * progress
 end
 
--- Efectos de bounce
 function AnimationUtils:bounceEffect(progress, intensity)
     return math.sin(progress * math.pi * 2) * intensity
 end
 
--- Efectos de pulse
 function AnimationUtils:pulseEffect(progress, frequency)
     return math.sin(progress * math.pi * frequency)
 end
 
--- Clamp final de valores
 function AnimationUtils:clampResult(alpha, scale)
     return {
         alpha = math.max(ANIMATION_CONSTANTS.MIN_ALPHA, math.min(ANIMATION_CONSTANTS.MAX_ALPHA, alpha)),
@@ -69,12 +61,10 @@ function AnimationUtils:clampResult(alpha, scale)
     }
 end
 
--- Obtener constantes de animación (para uso externo)
 function AnimationUtils:getConstants()
     return ANIMATION_CONSTANTS
 end
 
--- Generadores de animaciones específicas (Animation Factories)
 function AnimationUtils:getAnimationFactories()
     return {
         pulse = function()
@@ -126,7 +116,7 @@ function AnimationUtils:getAnimationFactories()
                     alpha = config.maxAlpha
                     local bounce = self:bounceEffect(phaseProgress, 0.1)
                     scale = 1.0 + bounce
-                else -- fadeOut
+                else
                     local fadeProgress = self:calculateFadeProgress(
                         phaseProgress, config.fadeOutTime
                     )
@@ -154,11 +144,11 @@ function AnimationUtils:getAnimationFactories()
                 
                 if phase == "fadeIn" then
                     alpha = config.maxAlpha * phaseProgress
-                    scale = 1.0 -- Sin crecimiento de escala
+                    scale = 1.0
                 elseif phase == "hold" then
                     alpha = config.maxAlpha
                     scale = 1.0
-                else -- fadeOut
+                else
                     local fadeProgress = self:calculateFadeProgress(
                         phaseProgress, config.fadeOutTime
                     )
@@ -191,7 +181,7 @@ function AnimationUtils:getAnimationFactories()
                 elseif phase == "hold" then
                     alpha = config.maxAlpha
                     scale = 1.0
-                else -- fadeOut
+                else
                     local fadeProgress = self:calculateFadeProgress(
                         phaseProgress, config.fadeOutTime
                     )
@@ -221,16 +211,13 @@ function AnimationUtils:getAnimationFactories()
                     alpha = config.maxAlpha * phaseProgress
                     scale = 1.0
                 elseif phase == "hold" then
-                    -- Efecto glow pulsing
                     local pulseValue = self:pulseEffect(phaseProgress, ANIMATION_CONSTANTS.PULSE_FREQUENCY)
                     
-                    -- Alpha pulsing entre 70% y 100% del maxAlpha del usuario
                     local alphaPulse = ANIMATION_CONSTANTS.GLOW_ALPHA_VARIATION
                     alpha = config.maxAlpha * (1.0 - alphaPulse + (alphaPulse * (pulseValue + 1) / 2))
                     
-                    -- Scale pulsing usando animScale del usuario
                     scale = 1.0 + ((config.animScale - 1.0) * (pulseValue + 1) / 2)
-                else -- fadeOut
+                else
                     local fadeProgress = self:calculateFadeProgress(
                         phaseProgress, config.fadeOutTime
                     )
@@ -249,7 +236,6 @@ function AnimationUtils:getAnimationFactories()
     }
 end
 
--- Exportar globalmente para WoW addon system
 _G.AnimationUtils = AnimationUtils
 
 return AnimationUtils

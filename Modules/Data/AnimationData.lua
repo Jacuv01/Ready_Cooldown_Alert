@@ -1,21 +1,14 @@
 local AnimationData = {}
 
--- Importar utilidades de animación desde Utils/
--- En WoW, las dependencias se cargan automáticamente si están en _G
-local AnimationUtils = _G.AnimationUtils
+local AnimationUtils = _G.AnimationUtils or rawget(_G, "AnimationUtils")
 
--- Verificar que AnimationUtils esté disponible
 if not AnimationUtils then
     error("AnimationUtils not found! Make sure AnimationUtils.lua is loaded before AnimationData.lua in the .toc file")
 end
 
--- Obtener constantes desde AnimationUtils
 local ANIMATION_CONSTANTS = AnimationUtils:getConstants()
-
--- Obtener factories desde AnimationUtils
 local AnimationFactories = AnimationUtils:getAnimationFactories()
 
--- Definición limpia y concisa de animaciones
 AnimationData.animations = {
 
     {
@@ -135,17 +128,15 @@ AnimationData.animations = {
     }
 }
 
--- Obtener animación por ID
 function AnimationData:GetAnimation(animationId)
     for _, animation in ipairs(self.animations) do
         if animation.id == animationId then
             return animation
         end
     end
-    return self.animations[1] -- Default a pulse si no se encuentra
+    return self.animations[1]
 end
 
--- Obtener lista de animaciones para dropdown
 function AnimationData:GetAnimationList()
     local list = {}
     for _, animation in ipairs(self.animations) do
@@ -158,13 +149,11 @@ function AnimationData:GetAnimationList()
     return list
 end
 
--- Obtener configuración de animación
 function AnimationData:GetAnimationConfig(animationId)
     local animation = self:GetAnimation(animationId)
     return animation and animation.config or self.animations[1].config
 end
 
--- Calcular estado de animación
 function AnimationData:CalculateAnimationState(animationId, currentTime, totalTime)
     local animation = self:GetAnimation(animationId)
     if animation and animation.config.updateFunction then
@@ -172,7 +161,6 @@ function AnimationData:CalculateAnimationState(animationId, currentTime, totalTi
         return animation.config.updateFunction(progress, totalTime, currentTime)
     end
     
-    -- Fallback al comportamiento por defecto
     return {
         alpha = 0.7,
         scale = 1.5,
@@ -180,7 +168,6 @@ function AnimationData:CalculateAnimationState(animationId, currentTime, totalTi
     }
 end
 
--- Exportar globalmente para WoW addon system
 _G.AnimationData = AnimationData
 
 return AnimationData

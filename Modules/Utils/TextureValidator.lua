@@ -98,7 +98,6 @@ function TextureValidator:SetFallbackTexture(newFallback)
     end
 end
 
--- Exportar globalmente para el sistema de addons de WoW
 _G.TextureValidator = TextureValidator
 
 return TextureValidator

@@ -1,6 +1,5 @@
 local CooldownData = {}
 
--- Obtener datos completos de cooldown según el tipo
 function CooldownData:GetCooldownDetails(id, actionType, extraData)
     if actionType == "spell" then
         return self:GetSpellCooldownDetails(id)
@@ -12,21 +11,18 @@ function CooldownData:GetCooldownDetails(id, actionType, extraData)
     return nil
 end
 
--- Detalles específicos de hechizo
 function CooldownData:GetSpellCooldownDetails(spellID)
+    local SpellData = rawget(_G, "SpellData")
     local spellInfo = SpellData and SpellData:GetSpellInfo(spellID) or {
         name = C_Spell.GetSpellName(spellID),
         texture = C_Spell.GetSpellTexture(spellID)
     }
-    
-    -- Obtener cooldown del hechizo
+
     local cooldownInfo = C_Spell.GetSpellCooldown(spellID)
     local start = cooldownInfo.startTime
     local duration = cooldownInfo.duration
     local enabled = cooldownInfo.isEnabled
-    
 
-    
     return {
         name = spellInfo.name,
         texture = spellInfo.texture,
@@ -38,14 +34,13 @@ function CooldownData:GetSpellCooldownDetails(spellID)
     }
 end
 
--- Detalles específicos de item
 function CooldownData:GetItemCooldownDetails(itemID, extraData)
+    local ItemData = rawget(_G, "ItemData")
     local itemInfo = ItemData and ItemData:GetItemInfo(itemID) or {
         name = C_Item.GetItemInfo(itemID),
         texture = C_Item.GetItemIconByID(itemID)
     }
     
-    -- Obtener cooldown del item usando la API correcta
     local start, duration, enabled = C_Item.GetItemCooldown(itemID)
     
     return {
@@ -59,16 +54,14 @@ function CooldownData:GetItemCooldownDetails(itemID, extraData)
     }
 end
 
--- Detalles específicos de mascota
 function CooldownData:GetPetCooldownDetails(spellID, extraData)
+    local PetData = rawget(_G, "PetData")
     local index = extraData and extraData.index
     if not index then
-        -- Buscar índice por nombre de hechizo
         local spellName = C_Spell.GetSpellName(spellID)
         if PetData then
             index = PetData:GetPetActionIndexByName(spellName)
         else
-            -- Fallback: buscar manualmente
             for i = 1, NUM_PET_ACTION_SLOTS do
                 local actionName = GetPetActionInfo(i)
                 if actionName == spellName then
@@ -103,7 +96,6 @@ function CooldownData:GetPetCooldownDetails(spellID, extraData)
     return nil
 end
 
--- Verificar si un cooldown es válido para tracking
 function CooldownData:IsValidForTracking(cooldownDetails, minDuration)
     minDuration = minDuration or 2.0
     
@@ -113,7 +105,6 @@ function CooldownData:IsValidForTracking(cooldownDetails, minDuration)
            cooldownDetails.texture
 end
 
--- Exportar globalmente para WoW addon system
 _G.CooldownData = CooldownData
 
 return CooldownData
