@@ -2,18 +2,15 @@ local ControlsManager = {}
 
 -- Referencias locales
 local checkboxes = {}
-local editBoxes = {}
 local dropdowns = {}
 
--- Crear todos los controls (checkboxes, editboxes, dropdowns)
+-- Crear todos los controls (checkboxes, dropdowns) - whitelist movido a FiltersUI
 function ControlsManager:CreateAllControls(parentFrame, sliderCount)
     self:CreateDropdowns(parentFrame)
     self:CreateCheckboxes(parentFrame, sliderCount)
-    self:CreateEditBoxes(parentFrame, sliderCount)
     
     return {
         checkboxes = checkboxes,
-        editBoxes = editBoxes,
         dropdowns = dropdowns
     }
 end
@@ -45,63 +42,10 @@ function ControlsManager:CreateCheckboxes(parentFrame, sliderCount)
     checkboxes.showSpellName = showNameCB
     yOffset = yOffset - position.spacing
     
-    -- Checkbox para invertir filtros
-    local invertCB = CreateFrame("CheckButton", "RCAInvertFilterCheckbox", parentFrame, "ChatConfigCheckButtonTemplate")
-    invertCB:SetPoint("TOPLEFT", position.x, yOffset)
-    invertCB.Text:SetText("Invert Filter (Whitelist mode)")
-    
-    local invertIgnored = ReadyCooldownAlertDB and ReadyCooldownAlertDB.invertIgnored or false
-    invertCB:SetChecked(invertIgnored)
-    
-    invertCB:SetScript("OnClick", function(self)
-        if ReadyCooldownAlertDB then
-            ReadyCooldownAlertDB.invertIgnored = self:GetChecked()
-            if _G.OptionsFrame then
-                _G.OptionsFrame:OnConfigChanged("invertIgnored", self:GetChecked())
-            end
-        end
-    end)
-    
-    checkboxes.invertIgnored = invertCB
+    -- NOTA: Whitelist/Filter checkbox movido a FiltersUI en pestaña separada
 end
 
--- Crear edit boxes
-function ControlsManager:CreateEditBoxes(parentFrame, sliderCount)
-    local position = _G.LayoutManager:GetEditBoxesPosition(sliderCount)
-    local yOffset = position.startY
-    
-    -- Label para ignored spells
-    local ignoredLabel = parentFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    ignoredLabel:SetPoint("TOPLEFT", position.x, yOffset)
-    ignoredLabel:SetText("Ignored Spells (comma separated):")
-    
-    -- EditBox para hechizos ignorados
-    local ignoredEditBox = CreateFrame("EditBox", "RCAIgnoredSpellsEditBox", parentFrame, "InputBoxTemplate")
-    ignoredEditBox:SetPoint("TOPLEFT", position.x, yOffset - 20)
-    ignoredEditBox:SetSize(350, 20)
-    ignoredEditBox:SetAutoFocus(false)
-    ignoredEditBox:SetMaxLetters(0) -- Sin límite
-    
-    -- Configurar valor inicial
-    local ignoredSpells = ReadyCooldownAlertDB and ReadyCooldownAlertDB.ignoredSpells or ""
-    ignoredEditBox:SetText(ignoredSpells)
-    
-    ignoredEditBox:SetScript("OnEnterPressed", function(self)
-        if ReadyCooldownAlertDB then
-            ReadyCooldownAlertDB.ignoredSpells = self:GetText()
-            if _G.OptionsFrame then
-                _G.OptionsFrame:OnConfigChanged("ignoredSpells", self:GetText())
-            end
-        end
-        self:ClearFocus()
-    end)
-    
-    ignoredEditBox:SetScript("OnEscapePressed", function(self)
-        self:ClearFocus()
-    end)
-    
-    editBoxes.ignoredSpells = ignoredEditBox
-end
+-- NOTA: CreateEditBoxes removido - funcionalidad movida a FiltersUI
 
 -- Función para poblar el dropdown de animaciones
 local function InitializeAnimationDropdown(self, level)
@@ -203,16 +147,7 @@ function ControlsManager:RefreshValues()
         checkboxes.showSpellName:SetChecked(showSpellName and true or false)
     end
     
-    if checkboxes.invertIgnored and _G.OptionsLogic then
-        local invertIgnored = _G.OptionsLogic:GetConfigValue("invertIgnored") or false
-        checkboxes.invertIgnored:SetChecked(invertIgnored and true or false)
-    end
-    
-    -- Actualizar edit boxes
-    if editBoxes.ignoredSpells and _G.OptionsLogic then
-        local ignoredSpells = _G.OptionsLogic:GetConfigValue("ignoredSpells") or ""
-        editBoxes.ignoredSpells:SetText(tostring(ignoredSpells))
-    end
+    -- NOTA: invertIgnored y ignoredSpells ahora se manejan en FiltersUI
     
     -- Actualizar dropdowns
     if dropdowns.animationType and _G.OptionsLogic then
@@ -233,8 +168,8 @@ end
 function ControlsManager:GetControls()
     return {
         checkboxes = checkboxes,
-        editBoxes = editBoxes,
         dropdowns = dropdowns
+        -- NOTA: editBoxes removido - funcionalidad en FiltersUI
     }
 end
 

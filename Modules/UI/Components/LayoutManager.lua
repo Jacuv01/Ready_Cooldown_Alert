@@ -7,10 +7,36 @@ local BUTTON_HEIGHT = 25
 local BUTTON_WIDTH = 75
 local SLIDER_HEIGHT = 50
 local SECTION_SPACING = 40 -- Espaciado entre secciones
+local TAB_HEIGHT = 30 -- Altura de las pestañas
+local TAB_WIDTH = 120 -- Ancho de cada pestaña
+
+-- PESTAÑAS DEL SISTEMA
+function LayoutManager:GetTabsPosition()
+    return {
+        startY = -30, -- Justo después del título
+        tabHeight = TAB_HEIGHT,
+        tabWidth = TAB_WIDTH,
+        spacing = 5, -- Espaciado entre pestañas
+        tabs = {
+            {name = "General", key = "general"},
+            {name = "Filters", key = "filters"}
+        }
+    }
+end
+
+-- Área de contenido de las pestañas (debajo de las pestañas)
+function LayoutManager:GetTabContentArea()
+    local tabsPos = self:GetTabsPosition()
+    return {
+        startY = tabsPos.startY - TAB_HEIGHT - 10, -- 10px después de las pestañas
+        contentHeight = WINDOW_HEIGHT - 100 -- Espacio disponible para contenido
+    }
+end
 
 -- SECCIÓN 1: SLIDERS DE POSICIÓN Y TAMAÑO (Top)
 function LayoutManager:GetPositionSlidersPosition()
-    local startY = -60 -- Comenzar después del título
+    local contentArea = self:GetTabContentArea()
+    local startY = contentArea.startY -- Comenzar después de las pestañas
     return {
         startY = startY,
         sliderHeight = SLIDER_HEIGHT,
@@ -112,7 +138,64 @@ function LayoutManager:GetConstants()
         SLIDER_HEIGHT = SLIDER_HEIGHT,
         BUTTON_HEIGHT = BUTTON_HEIGHT,
         BUTTON_WIDTH = BUTTON_WIDTH,
-        SECTION_SPACING = SECTION_SPACING
+        SECTION_SPACING = SECTION_SPACING,
+        TAB_HEIGHT = TAB_HEIGHT,
+        TAB_WIDTH = TAB_WIDTH
+    }
+end
+
+-- PESTAÑA DE FILTROS - Layout específico
+function LayoutManager:GetFiltersTabLayout()
+    local contentArea = self:GetTabContentArea()
+    
+    return {
+        -- Input para agregar nuevos filtros (ahora al top)
+        addInput = {
+            x = 20,
+            y = contentArea.startY - 20,
+            width = 250,
+            height = 25,
+            label = "Add Spell/Item (name or ID):"
+        },
+        
+        -- Botón para agregar
+        addButton = {
+            x = 280,
+            y = contentArea.startY - 20,
+            width = 60,
+            height = 25
+        },
+        
+        -- Lista de filtros (scroll frame)
+        filtersList = {
+            x = 20,
+            y = contentArea.startY - 60,
+            width = 360,
+            height = 400,
+            itemHeight = 25,
+            spacing = 2
+        },
+        
+        -- Botones de acción
+        clearAllButton = {
+            x = 20,
+            y = contentArea.startY - 480,
+            width = 80,
+            height = 25
+        },
+        
+        importExportButton = {
+            x = 110,
+            y = contentArea.startY - 480,
+            width = 100,
+            height = 25
+        },
+        
+        -- Checkbox de inversión (whitelist mode) - movido después de los botones
+        invertCheckbox = {
+            x = 20,
+            y = contentArea.startY - 520
+        }
     }
 end
 

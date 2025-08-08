@@ -33,6 +33,9 @@ function OptionsFrame:Initialize()
     -- Crear todos los elementos de UI
     self:CreateUIElements()
     
+    -- Finalizar inicialización
+    self:FinalizeUIElements()
+    
     -- Inicializar estado
     self:InitializeState()
 end
@@ -44,6 +47,10 @@ function OptionsFrame:LoadComponents()
     sliderManager = _G.SliderManager
     buttonManager = _G.ButtonManager
     controlsManager = _G.ControlsManager
+    
+    -- Nuevos componentes para el sistema de pestañas
+    self.tabManager = _G.TabManager
+    self.filtersUI = _G.FiltersUI
 end
 
 -- Crear frame principal
@@ -51,7 +58,7 @@ function OptionsFrame:CreateMainFrame()
     optionsFrame = CreateFrame("MessageFrame", "ReadyCooldownAlertOptionsFrame", UIParent, "BasicFrameTemplateWithInset")
     optionsFrame:SetSize(400, 900)
     optionsFrame:SetPoint("CENTER")
-    optionsFrame:SetFrameStrata("LOW")
+    optionsFrame:SetFrameStrata("MEDIUM")
     optionsFrame:SetMovable(true)
     optionsFrame:EnableMouse(true)
     optionsFrame:RegisterForDrag("LeftButton")
@@ -96,6 +103,65 @@ end
 
 -- Crear todos los elementos de UI usando los managers
 function OptionsFrame:CreateUIElements()
+    -- Inicializar sistema de pestañas
+    if self.tabManager then
+        self.tabManager:Initialize(optionsFrame, layoutManager)
+        
+        -- Configurar callback para cambios de pestaña
+        self.tabManager:SetTabChangedCallback(function(tabKey)
+            self:OnTabChanged(tabKey)
+        end)
+        
+        -- Crear contenido de la pestaña General
+        self:CreateGeneralTabContent()
+        
+        -- Crear contenido de la pestaña Filters
+        self:CreateFiltersTabContent()
+    else
+        -- Fallback: crear UI sin pestañas (modo legacy)
+        self:CreateLegacyUI()
+    end
+end
+
+-- Crear contenido de la pestaña General
+function OptionsFrame:CreateGeneralTabContent()
+    local generalFrame = self.tabManager:GetContentFrame("general")
+    if not generalFrame then return end
+    
+    local sliderCount = #(_G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {})
+    
+    -- Crear elementos en la pestaña General usando los managers modulares
+    if controlsManager then
+        local controls = controlsManager:CreateAllControls(generalFrame, sliderCount)
+        uiElements.checkboxes = controls.checkboxes
+        uiElements.editBoxes = controls.editBoxes
+        uiElements.dropdowns = controls.dropdowns
+    end
+    
+    if sliderManager then
+        local sliders = sliderManager:CreateSliders(generalFrame)
+        uiElements.sliders = sliders
+    end
+    
+    if buttonManager then
+        local buttons = buttonManager:CreateButtons(generalFrame, sliderCount)
+        uiElements.buttons = buttons
+    end
+end
+
+-- Crear contenido de la pestaña Filters
+function OptionsFrame:CreateFiltersTabContent()
+    local filtersFrame = self.tabManager:GetContentFrame("filters")
+    if not filtersFrame then return end
+    
+    -- Inicializar UI de filtros
+    if self.filtersUI then
+        self.filtersUI:Initialize(filtersFrame, layoutManager)
+    end
+end
+
+-- Crear UI legacy (sin pestañas) como fallback
+function OptionsFrame:CreateLegacyUI()
     local sliderCount = #(_G.OptionsLogic and _G.OptionsLogic:GetSliderConfigs() or {})
     
     -- Crear elementos usando los managers modulares
@@ -115,7 +181,19 @@ function OptionsFrame:CreateUIElements()
         local buttons = buttonManager:CreateButtons(optionsFrame, sliderCount)
         uiElements.buttons = buttons
     end
-    
+end
+
+-- Callback cuando cambia la pestaña activa
+function OptionsFrame:OnTabChanged(tabKey)
+    -- Aquí se pueden agregar acciones específicas cuando cambia la pestaña
+    if tabKey == "filters" and self.filtersUI then
+        -- Actualizar lista de filtros cuando se cambia a la pestaña de filtros
+        self.filtersUI:RefreshFiltersList()
+    end
+end
+
+-- Finalizar inicialización de elementos (legacy compatibility)
+function OptionsFrame:FinalizeUIElements()
     -- Actualizar sliders para la animación seleccionada inicialmente
     local selectedAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
     if sliderManager then
