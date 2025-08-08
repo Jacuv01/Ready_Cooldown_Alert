@@ -1,0 +1,11 @@
+## Interface: 100200
+## Title: ReadyCooldownAlert
+## Notes: 
+## Author: Jacuv
+## Version: 0.0.0
+## SavedVariables: ReadyCooldownAlertDB
+## X-Curse-Project-ID: 
+## X-Wago-ID: 
+
+# Main Addon File - Load after all modules
+ReadyCooldownAlert.lua
