@@ -215,15 +215,6 @@ function LayoutManager:GetFiltersTabLayout()
         }
     }
 end
-
--- Calcular posición de botones inferiores (Reset All, Close)
-function LayoutManager:GetBottomButtonsPosition()
-    return {
-        buttonWidth = BUTTON_WIDTH,
-        buttonHeight = BUTTON_HEIGHT
-    }
-end
-
 -- Exportar globalmente para WoW addon system
 _G.LayoutManager = LayoutManager
 

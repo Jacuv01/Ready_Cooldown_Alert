@@ -11,15 +11,13 @@ function ButtonManager:CreateButtons(parentFrame, sliderCount)
     -- Crear botones de animación (Test, Edit/Save, Reset) en la sección inferior
     self:CreateAnimationButtons(parentFrame, sliderCount)
     
-    -- Crear botones inferiores (Reset All, Close)
-    self:CreateBottomButtons(parentFrame)
-    
     return buttons
 end
 
 -- Crear botón Unlock/Lock para la sección de posición
 function ButtonManager:CreatePositionButton(parentFrame)
-    local position = _G.LayoutManager:GetPositionButtonPosition()
+    local LayoutManager = rawget(_G, "LayoutManager")
+    local position = LayoutManager and LayoutManager:GetPositionButtonPosition() or {buttonWidth = 100, buttonHeight = 25}
     
     -- Botón Unlock/Lock (para position e iconSize)
     local unlockButton = CreateFrame("Button", "RCAUnlockButton", parentFrame, "GameMenuButtonTemplate")
@@ -37,7 +35,9 @@ end
 -- Crear botones de animación (Test, Edit/Save, Reset Anim)
 function ButtonManager:CreateAnimationButtons(parentFrame, sliderCount)
     local animationSliderCount = sliderCount - 3 -- Restar los 3 sliders de posición
-    local position = _G.LayoutManager:GetAnimationButtonsPosition(animationSliderCount)
+    local LayoutManager = rawget(_G, "LayoutManager")
+    local position = LayoutManager and LayoutManager:GetAnimationButtonsPosition(animationSliderCount) or 
+                    {startX = 10, y = 100, buttonWidth = 80, buttonHeight = 25, spacing = 10}
     
     local startX = position.startX
     local buttonY = position.y
@@ -82,34 +82,6 @@ function ButtonManager:CreateAnimationButtons(parentFrame, sliderCount)
     end)
     resetAnimButton:SetAttribute("confirmationText", "This will reset the selected animation to default values. Continue?")
     buttons.resetAnimButton = resetAnimButton
-end
-
--- Crear botones inferiores (Reset All, Close)
-function ButtonManager:CreateBottomButtons(parentFrame)
-    local position = _G.LayoutManager:GetBottomButtonsPosition()
-    
-    -- Botón Reset All
-    local resetAllButton = CreateFrame("Button", "RCAResetAllButton", parentFrame, "GameMenuButtonTemplate")
-    resetAllButton:SetPoint("BOTTOMRIGHT", -10, 10)
-    resetAllButton:SetSize(position.buttonWidth, position.buttonHeight)
-    resetAllButton:SetText("Reset All")
-    resetAllButton:SetScript("OnClick", function()
-        _G.OptionsLogic:ResetToDefaultAll()
-    end)
-    resetAllButton:SetAttribute("confirmationText", "This will reset ALL animations to default values. Continue?")
-    buttons.resetAllButton = resetAllButton
-
-    -- Botón Close
-    local closeButton = CreateFrame("Button", "RCACloseButton", parentFrame, "GameMenuButtonTemplate")
-    closeButton:SetPoint("BOTTOMRIGHT", -150, 10)
-    closeButton:SetSize(position.buttonWidth, position.buttonHeight)
-    closeButton:SetText("Close")
-    closeButton:SetScript("OnClick", function()
-        if _G.OptionsFrame then
-            _G.OptionsFrame:Hide()
-        end
-    end)
-    buttons.closeButton = closeButton
 end
 
 -- Actualizar estado del botón unlock/lock

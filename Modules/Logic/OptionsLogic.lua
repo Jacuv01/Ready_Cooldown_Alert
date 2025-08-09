@@ -1,6 +1,5 @@
 local OptionsLogic = {}
 
--- Configuración de sliders
 local sliderConfigs = {
     {
         key = "fadeInTime",
@@ -62,28 +61,26 @@ local sliderConfigs = {
         key = "positionX",
         label = "Position X",
         min = 0,
-        max = 0, -- Se calculará dinámicamente
+        max = 0,
         step = 1,
-        default = 0, -- Se calculará como centro de pantalla
+        default = 0,
         isDynamic = true
     },
     {
         key = "positionY", 
         label = "Position Y",
         min = 0,
-        max = 0, -- Se calculará dinámicamente
+        max = 0,
         step = 1,
-        default = 0, -- Se calculará como centro de pantalla
+        default = 0,
         isDynamic = true
     }
 }
 
--- Obtener configuración de sliders
 function OptionsLogic:GetSliderConfigs()
     return sliderConfigs
 end
 
--- Calcular valores dinámicos para sliders de posición
 function OptionsLogic:CalculateDynamicValues(config)
     local minVal = config.min
     local maxVal = config.max
@@ -92,70 +89,54 @@ function OptionsLogic:CalculateDynamicValues(config)
     if config.isDynamic then
         if config.key == "positionX" then
             maxVal = GetScreenWidth() or 1920
-            defaultVal = maxVal / 2 -- Centro de pantalla
+            defaultVal = maxVal / 2
         elseif config.key == "positionY" then
             maxVal = GetScreenHeight() or 1080
-            defaultVal = maxVal / 2 -- Centro de pantalla
+            defaultVal = maxVal / 2
         end
     end
     
     return minVal, maxVal, defaultVal
 end
 
--- Validar y procesar cambios de configuración
 function OptionsLogic:ValidateConfigChange(key, value)
-    -- Validación especial para remainingCooldownWhenNotified
     if key == "remainingCooldownWhenNotified" and value <= 0 then
-        -- Corregir valor a mínimo permitido
-        return 0.1, true -- valor corregido, fue modificado
+        return 0.1, true
     end
     
-    return value, false -- valor original, no fue modificado
+    return value, false
 end
 
--- Callback cuando cambia la configuración
 function OptionsLogic:OnConfigChanged(key, value)
-    -- Validar el valor primero
     local validatedValue, wasModified = self:ValidateConfigChange(key, value)
     
-    -- Actualizar la base de datos
     if ReadyCooldownAlertDB then
         ReadyCooldownAlertDB[key] = validatedValue
     end
     
-    -- Notificar a otros módulos que la configuración cambió
-    local AnimationProcessor = rawget(_G, "AnimationProcessor")
-    if AnimationProcessor then
-        AnimationProcessor:RefreshConfig()
-    end
-    
-    local FilterProcessor = rawget(_G, "FilterProcessor")
-    if FilterProcessor then
-        FilterProcessor:RefreshFilters()
-    end
-    
-    -- Actualizar posición del MainFrame si cambió positionX o positionY
-    if (key == "positionX" or key == "positionY") then
-        local MainFrame = rawget(_G, "MainFrame")
-        if MainFrame then
-            MainFrame:UpdatePosition()
-            
-            -- Si estamos en modo de edición, asegurar que el icono siga visible
-            local OptionsFrame = rawget(_G, "OptionsFrame")
-            if OptionsFrame and OptionsFrame:IsEditing() then
-                MainFrame:ShowForPositioning()
+    local processors = {"AnimationProcessor", "FilterProcessor"}
+    for _, processorName in ipairs(processors) do
+        local processor = rawget(_G, processorName)
+        if processor then
+            if processorName == "AnimationProcessor" and processor.RefreshConfig then
+                processor:RefreshConfig()
+            elseif processorName == "FilterProcessor" and processor.RefreshFilters then
+                processor:RefreshFilters()
             end
         end
     end
     
-    -- Actualizar tamaño del MainFrame si cambió iconSize
-    if key == "iconSize" then
+    if key == "positionX" or key == "positionY" or key == "iconSize" then
         local MainFrame = rawget(_G, "MainFrame")
+        local OptionsFrame = rawget(_G, "OptionsFrame")
+        
         if MainFrame then
-            MainFrame:UpdateSize()
+            if key == "positionX" or key == "positionY" then
+                MainFrame:UpdatePosition()
+            elseif key == "iconSize" then
+                MainFrame:UpdateSize()
+            end
             
-            -- Si estamos en modo de edición, asegurar que el icono siga visible
-            local OptionsFrame = rawget(_G, "OptionsFrame")
             if OptionsFrame and OptionsFrame:IsEditing() then
                 MainFrame:ShowForPositioning()
             end
@@ -165,9 +146,7 @@ function OptionsLogic:OnConfigChanged(key, value)
     return validatedValue, wasModified
 end
 
--- Manejar click en botón Test
 function OptionsLogic:OnTestClicked()
-    -- Priorizar AnimationProcessor
     local AnimationProcessor = rawget(_G, "AnimationProcessor")
     local MainFrame = rawget(_G, "MainFrame")
     
@@ -178,93 +157,43 @@ function OptionsLogic:OnTestClicked()
     end
 end
 
--- Manejar lógica del botón Unlock/Lock
-function OptionsLogic:OnUnlockClicked(currentState)
-    local newState = not currentState
-    
-    -- Mostrar/ocultar icono según el estado
-    if newState then
-        -- Modo unlock: mostrar icono para posicionamiento
-        if rawget(_G, "MainFrame") then
-            rawget(_G, "MainFrame"):ShowForPositioning()
-        end
-    else
-        -- Modo lock: ocultar icono
-        if rawget(_G, "MainFrame") then
-            rawget(_G, "MainFrame"):HideFromPositioning()
-        end
-    end
-    
-    return newState
-end
-
--- Manejar click en botón Close
-function OptionsLogic:OnCloseClicked(isCurrentlyUnlocked)
-    -- Si está unlocked, hacer lock primero
-    if isCurrentlyUnlocked then
-        if rawget(_G, "MainFrame") then
-            rawget(_G, "MainFrame"):HideFromPositioning()
-        end
-    end
-    
-    -- Devolver que debe estar locked (false = locked)
-    return false
-end
-
--- Restaurar valores por defecto
-function OptionsLogic:RestoreDefaults()
-    -- Inicializar base de datos si no existe
+function OptionsLogic:OnResetClicked()
     if not ReadyCooldownAlertDB then
-        ReadyCooldownAlertDB = {}
+        return
     end
     
-    -- Restaurar valores de sliders
     for _, config in ipairs(sliderConfigs) do
-        local _, _, defaultVal = self:CalculateDynamicValues(config)
-        ReadyCooldownAlertDB[config.key] = defaultVal
+        if not config.isDynamic then
+            ReadyCooldownAlertDB[config.key] = config.default
+        else
+            local _, _, defaultVal = self:CalculateDynamicValues(config)
+            ReadyCooldownAlertDB[config.key] = defaultVal
+        end
     end
     
-    -- Restaurar otros valores
-    ReadyCooldownAlertDB.showSpellName = true
-    ReadyCooldownAlertDB.invertIgnored = false
-    ReadyCooldownAlertDB.ignoredSpells = ""
-    ReadyCooldownAlertDB.selectedAnimation = "pulse"
-    
-    -- Validar que remainingCooldownWhenNotified no sea cero
-    if ReadyCooldownAlertDB.remainingCooldownWhenNotified and ReadyCooldownAlertDB.remainingCooldownWhenNotified <= 0 then
-        ReadyCooldownAlertDB.remainingCooldownWhenNotified = 1.0
+    if ReadyCooldownAlertDB.selectedAnimation then
+        ReadyCooldownAlertDB.selectedAnimation = "pulse"
+    end
+    if ReadyCooldownAlertDB.animationConfigs then
+        ReadyCooldownAlertDB.animationConfigs = {}
     end
     
-    -- Notificar cambios
-    self:OnConfigChanged("defaults", true)
+    local modules = {"OptionsFrame", "SliderManager", "ControlsManager"}
+    for _, moduleName in ipairs(modules) do
+        local module = rawget(_G, moduleName)
+        if module and module.RefreshValues then
+            module:RefreshValues()
+        end
+    end
+    
+    self:OnConfigChanged("reset", "all")
 end
 
--- Restaurar valores por defecto de la animación actual
-function OptionsLogic:RestoreAnimationDefaults(animationType)
-    if not ReadyCooldownAlertDB or not AnimationData then
-        return
-    end
-    
-    -- Obtener la configuración de la animación seleccionada
-    local animationData = AnimationData:GetAnimation(animationType)
-    if not animationData or not animationData.defaultValues then
-        return
-    end
-    
-    -- Restaurar solo los valores específicos de esta animación
-    for key, defaultValue in pairs(animationData.defaultValues) do
-        ReadyCooldownAlertDB[key] = defaultValue
-        -- Notificar cambio individual
-        self:OnConfigChanged(key, defaultValue)
-    end
-    
-    -- No cambiar la animación seleccionada, mantener la actual
-    -- No cambiar otros valores como showSpellName, invertIgnored, etc.
+function OptionsLogic:ShouldSliderBeDisabled(key)
+    return key == "positionX" or key == "positionY"
 end
 
--- Obtener valor actual de configuración con fallback a default
 function OptionsLogic:GetConfigValue(key)
-    -- Buscar la configuración del slider
     for _, config in ipairs(sliderConfigs) do
         if config.key == key then
             local _, _, defaultVal = self:CalculateDynamicValues(config)
@@ -273,48 +202,36 @@ function OptionsLogic:GetConfigValue(key)
         end
     end
     
-    -- Para valores no dinámicos, devolver valor de DB o nil
     return ReadyCooldownAlertDB and ReadyCooldownAlertDB[key]
 end
 
--- Formatear texto de valor para sliders
 function OptionsLogic:FormatSliderValue(key, value)
-    if key == "positionX" or key == "positionY" then
-        return tostring(math.floor(value))
-    else
-        return string.format("%.1f", value)
-    end
+    local formatters = {
+        positionX = function(v) return tostring(math.floor(v)) end,
+        positionY = function(v) return tostring(math.floor(v)) end,
+        iconSize = function(v) return tostring(math.floor(v)) end,
+        animScale = function(v) return string.format("%.1fx", v) end,
+        maxAlpha = function(v) return string.format("%.1f", v) end
+    }
+    
+    local formatter = formatters[key]
+    return formatter and formatter(value) or string.format("%.1fs", value)
 end
 
--- Calcular step size para mouse wheel en sliders
 function OptionsLogic:GetMouseWheelStep(key)
-    -- Para sliders de posición, usar pasos más grandes
-    if key == "positionX" or key == "positionY" then
-        return 5 -- Mover 5 píxeles por scroll
-    end
-    
-    -- Buscar el step configurado para otros sliders
     for _, config in ipairs(sliderConfigs) do
         if config.key == key then
-            return config.step
+            return config.step * 5
         end
     end
-    
-    return 0.1 -- Default step
+    return 0.1
 end
 
--- Verificar si un slider debe estar desactivado por defecto
-function OptionsLogic:ShouldSliderBeDisabled(key)
-    return key == "positionX" or key == "positionY"
-end
-
--- Inicializar configuración por defecto si no existe
 function OptionsLogic:InitializeDefaultConfig()
     if not ReadyCooldownAlertDB then
         ReadyCooldownAlertDB = {}
     end
     
-    -- Solo inicializar valores que no existen
     for _, config in ipairs(sliderConfigs) do
         if ReadyCooldownAlertDB[config.key] == nil then
             local _, _, defaultVal = self:CalculateDynamicValues(config)
@@ -322,7 +239,6 @@ function OptionsLogic:InitializeDefaultConfig()
         end
     end
     
-    -- Inicializar otros valores si no existen
     if ReadyCooldownAlertDB.showSpellName == nil then
         ReadyCooldownAlertDB.showSpellName = true
     end
@@ -337,71 +253,87 @@ function OptionsLogic:InitializeDefaultConfig()
     end
 end
 
--- Cargar configuración específica de una animación
 function OptionsLogic:LoadAnimationConfiguration(animationType)
     local AnimationData = rawget(_G, "AnimationData")
     if not ReadyCooldownAlertDB or not AnimationData then
         return
     end
     
-    -- Obtener la configuración de la animación seleccionada
     local animationData = AnimationData:GetAnimation(animationType)
     if not animationData or not animationData.defaultValues then
         return
     end
     
-    -- Verificar si hay configuración guardada para esta animación
     local savedConfig = ReadyCooldownAlertDB.animationConfigs and ReadyCooldownAlertDB.animationConfigs[animationType]
     
-    -- Cargar los valores específicos de esta animación en ReadyCooldownAlertDB
-    -- EXCLUIR valores de posición e iconSize que deben ser compartidos entre animaciones
     for key, defaultValue in pairs(animationData.defaultValues) do
-        -- Saltar sliders de posición e iconSize - estos se comparten entre animaciones
         if key ~= "positionX" and key ~= "positionY" and key ~= "iconSize" then
             if savedConfig and savedConfig[key] ~= nil then
-                -- Usar valor guardado si existe
                 ReadyCooldownAlertDB[key] = savedConfig[key]
             else
-                -- Si no hay configuración guardada, usar el default específico de esta animación
                 ReadyCooldownAlertDB[key] = defaultValue
             end
         end
     end
 end
 
--- Guardar configuración actual para una animación específica
 function OptionsLogic:SaveAnimationConfiguration(animationType)
     local AnimationData = rawget(_G, "AnimationData")
     if not ReadyCooldownAlertDB or not AnimationData then
         return
     end
     
-    -- Obtener la configuración de la animación seleccionada
     local animationData = AnimationData:GetAnimation(animationType)
     if not animationData or not animationData.defaultValues then
         return
     end
     
-    -- Crear una nueva estructura para almacenar configuraciones por animación
     if not ReadyCooldownAlertDB.animationConfigs then
         ReadyCooldownAlertDB.animationConfigs = {}
     end
     
-    -- Guardar la configuración actual para esta animación (SOLO valores específicos de animación)
     ReadyCooldownAlertDB.animationConfigs[animationType] = {}
     
     for key, _ in pairs(animationData.defaultValues) do
-        -- Saltar sliders de posición e iconSize - estos se comparten entre animaciones
         if key ~= "positionX" and key ~= "positionY" and key ~= "iconSize" and ReadyCooldownAlertDB[key] ~= nil then
             ReadyCooldownAlertDB.animationConfigs[animationType][key] = ReadyCooldownAlertDB[key]
         end
     end
     
-    -- Notificar cambios
     self:OnConfigChanged("animationSaved", animationType)
 end
 
--- Exportar globalmente para WoW addon system
-_G.OptionsLogic = OptionsLogic
+function OptionsLogic:RestoreAnimationDefaults(animationType)
+    local AnimationData = rawget(_G, "AnimationData")
+    if not ReadyCooldownAlertDB or not AnimationData then
+        return
+    end
+    
+    local animationData = AnimationData:GetAnimation(animationType)
+    if not animationData or not animationData.defaultValues then
+        return
+    end
+    
+    for key, defaultValue in pairs(animationData.defaultValues) do
+        if key ~= "positionX" and key ~= "positionY" and key ~= "iconSize" then
+            ReadyCooldownAlertDB[key] = defaultValue
+        end
+    end
+    
+    if ReadyCooldownAlertDB.animationConfigs and ReadyCooldownAlertDB.animationConfigs[animationType] then
+        ReadyCooldownAlertDB.animationConfigs[animationType] = nil
+    end
+    
+    local modules = {"OptionsFrame", "SliderManager"}
+    for _, moduleName in ipairs(modules) do
+        local module = rawget(_G, moduleName)
+        if module and module.RefreshValues then
+            module:RefreshValues()
+        end
+    end
+    
+    self:OnConfigChanged("animationRestored", animationType)
+end
 
+_G.OptionsLogic = OptionsLogic
 return OptionsLogic

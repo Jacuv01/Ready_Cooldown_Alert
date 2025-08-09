@@ -43,14 +43,14 @@ end
 -- Cargar componentes modulares
 function OptionsFrame:LoadComponents()
     -- Los componentes se cargan automáticamente por el sistema de addons de WoW
-    layoutManager = _G.LayoutManager
-    sliderManager = _G.SliderManager
-    buttonManager = _G.ButtonManager
-    controlsManager = _G.ControlsManager
+    layoutManager = rawget(_G, "LayoutManager")
+    sliderManager = rawget(_G, "SliderManager")
+    buttonManager = rawget(_G, "ButtonManager")
+    controlsManager = rawget(_G, "ControlsManager")
     
     -- Nuevos componentes para el sistema de pestañas
-    self.tabManager = _G.TabManager
-    self.filtersUI = _G.FiltersUI
+    self.tabManager = rawget(_G, "TabManager")
+    self.filtersUI = rawget(_G, "FiltersUI")
 end
 
 -- Crear frame principal
@@ -70,10 +70,14 @@ function OptionsFrame:CreateMainFrame()
         -- El foco se manejará solo cuando sea necesario
     end)
     
-    -- Manejar clicks para quitar foco y permitir movimiento
+    -- Manejar clicks para quitar foco de editboxes y permitir movimiento
     optionsFrame:SetScript("OnMouseDown", function(self, button)
         if button == "LeftButton" then
-            self:ClearFocus() -- Quitar foco para permitir movimiento
+            -- Quitar foco de cualquier editbox activo
+            local focusedFrame = GetCurrentKeyBoardFocus()
+            if focusedFrame and focusedFrame.ClearFocus then
+                focusedFrame:ClearFocus()
+            end
         end
     end)
     optionsFrame:SetScript("OnDragStart", optionsFrame.StartMoving)
@@ -327,8 +331,9 @@ function OptionsFrame:OnUnlockClicked()
         buttonManager:UpdateUnlockButton(false)
         
         -- Ocultar el icono de posicionamiento
-        if _G.MainFrame then
-            _G.MainFrame:HideFromPositioning()
+        local MainFrame = rawget(_G, "MainFrame")
+        if MainFrame then
+            MainFrame:HideFromPositioning()
         end
     else
         -- Modo Unlock: Habilitar sliders de posición e iconSize
@@ -337,74 +342,10 @@ function OptionsFrame:OnUnlockClicked()
         buttonManager:UpdateUnlockButton(true)
         
         -- Mostrar el icono para posicionamiento
-        if _G.MainFrame then
-            _G.MainFrame:ShowForPositioning()
+        local MainFrame = rawget(_G, "MainFrame")
+        if MainFrame then
+            MainFrame:ShowForPositioning()
         end
-    end
-end
-
--- Manejar click en botón Reset Animation
-function OptionsFrame:OnResetAnimationClicked()
-    -- Obtener la animación actualmente seleccionada
-    local currentAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
-    
-    -- Delegar a OptionsLogic para restaurar valores de la animación actual
-    if _G.OptionsLogic then
-        _G.OptionsLogic:RestoreAnimationDefaults(currentAnimation)
-    end
-    
-    -- Actualizar interfaz
-    self:RefreshValues()
-    
-    -- Actualizar sliders específicamente para la animación actual
-    self:UpdateSlidersForAnimation(currentAnimation)
-end
-
--- Manejar click en botón Reset All (restaurar todo)
-function OptionsFrame:OnResetAllClicked()
-    -- Delegar a OptionsLogic para restaurar TODOS los valores
-    if _G.OptionsLogic then
-        _G.OptionsLogic:RestoreDefaults()
-    end
-    
-    -- Actualizar interfaz
-    self:RefreshValues()
-    
-    -- La animación habrá cambiado a "pulse", actualizar sliders
-    local newAnimation = ReadyCooldownAlertDB and ReadyCooldownAlertDB.selectedAnimation or "pulse"
-    self:UpdateSlidersForAnimation(newAnimation)
-end
-
--- Mantener función legacy para compatibilidad
-function OptionsFrame:OnDefaultsClicked()
-    -- Redirigir a la nueva función de reset de animación
-    self:OnResetAnimationClicked()
-end
-
--- Manejar click en botón Close
-function OptionsFrame:OnCloseClicked()
-    -- Si está en modo edición, salir del modo edición
-    if isEditing and buttonManager then
-        isEditing = false
-        buttonManager:UpdateEditButton(false)
-        self:SetAnimationSlidersEnabled(false)
-    end
-    
-    -- Si está en modo unlocked, salir del modo unlocked
-    if isUnlocked and buttonManager then
-        isUnlocked = false
-        buttonManager:UpdateUnlockButton(false)
-        self:SetPositionAndSizeSlidersEnabled(false)
-        
-        -- Ocultar el icono de posicionamiento
-        if _G.MainFrame then
-            _G.MainFrame:HideFromPositioning()
-        end
-    end
-    
-    -- Cerrar la ventana
-    if optionsFrame then
-        optionsFrame:Hide()
     end
 end
 
