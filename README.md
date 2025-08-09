@@ -64,7 +64,7 @@ Ready Cooldown Alert is designed with performance in mind:
 
 By me beard! I'm just one lad who loves this grand world of Azeroth and enjoys crafting tools for our mighty community. If ye'd like to support me work and help me continue forging addons and features for fellow adventurers, buying me a coffee would warm me heart like a good ale by the forge! Your feedback and suggestions are worth more than gold in making this addon better for everyone, aye!
 
-<a href="https://www.buymeacoffee.com/jacuv"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=jacuv&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
+[![Buy Me a Coffee](https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=☕&slug=jacuv&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00)](https://www.buymeacoffee.com/jacuv)
 
 
 ## Acknowledgments
