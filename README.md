@@ -1,145 +1,78 @@
+<div align="center">
+
 # Ready Cooldown Alert
 
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen) ![WoW Version](https://img.shields.io/badge/WoW-Retail-blue) ![License](https://img.shields.io/badge/license-MIT-green)
+
+</div>
+
+Ready Cooldown Alert is a lightweight and efficient World of Warcraft addon that provides customizable visual notifications when your spells, abilities, and items are ready to use. When you use a spell or ability, the addon tracks its cooldown and displays an animated icon on your screen when it becomes available again, ensuring you never miss important abilities during combat. You can customize the animation style, position, size, and filter which spells to track.
+
+**Inspired by [Doom_CooldownPulse](https://github.com/aduth/Doom_CooldownPulse)**, Ready Cooldown Alert was built from the ground up to include all the features I always wanted: advanced filtering system, dynamic spell suggestions, modular architecture, and enhanced customization options that go beyond the original concept.
+
+## Features
+
+- **Smart Cooldown Detection**: Automatically tracks spells, abilities, and items.
+- **Animations**: Multiple animations including pulse, glow, bounce, and more
+- **Advanced Filtering System**: Include or exclude specific spells with name-based or ID-based filtering
+- **Performance Optimized**: Minimal CPU usage with efficient cooldown tracking algorithms
+- **User-Friendly Interface**: Intuitive configuration panel
+- **Position Settings**: Adjust X/Y coordinates and icon size
+- **Threshold Settings**: Set when notifications should appear based on remaining cooldown time
+- **Add Spells/Items**: Use the search system to add spells by name or ID
+- **Invert Mode**: Switch between include/exclude filtering modes
+
+## Quick Start
+
+To open the options window, type `/rca` into your chat and hit enter.
+
+### Basic Setup
+1. Install the addon and restart World of Warcraft
+2. Type `/rca` to open the configuration panel
+3. Configure your preferred animation settings in the **General** tab
+4. Set up spell filters in the **Filters** tab if desired
+5. Position the notification area using the **Unlock** button
+6. Test your settings with the **Test** button
 
 
-## 🚀 Características
+## Commands
 
-- **Alertas visuales** cuando los cooldowns de habilidades están listos
-- **Soporte completo** para hechizos, items y habilidades de mascota  
-- **Sistema de filtros** avanzado (whitelist/blacklist)
-- **Animaciones personalizables** (tamaño, tiempo, opacidad)
-- **Posicionamiento libre** con drag & drop
-- **Interfaz de configuración** completa con sliders y opciones
-
-## 📁 Arquitectura Modular
-
-```
-Ready_Cooldown_Alert/
-├── Core/
-│   └── Init.lua                 # Inicializador principal
-├── Modules/
-│   ├── Data/                    # APIs del juego
-│   │   ├── SpellData.lua       # Información de hechizos
-│   │   ├── ItemData.lua        # Información de items
-│   │   ├── PetData.lua         # Información de mascotas
-│   │   └── CooldownData.lua    # Coordinador de cooldowns
-│   ├── Hooks/                   # Detectores de acciones
-│   │   ├── ActionHooks.lua     # UseAction, UseInventoryItem, etc.
-│   │   ├── SpellHooks.lua      # UNIT_SPELLCAST_SUCCEEDED
-│   │   ├── CombatHooks.lua     # COMBAT_LOG_EVENT_UNFILTERED
-│   │   └── HookManager.lua     # Coordinador de hooks
-│   ├── Logic/                   # Procesamiento de datos
-│   │   ├── CooldownProcessor.lua   # Lógica de cooldowns
-│   │   ├── FilterProcessor.lua     # Sistema de filtros
-│   │   ├── AnimationProcessor.lua  # Control de animaciones
-│   │   └── LogicManager.lua        # Coordinador de lógica
-│   └── UI/                      # Interfaz de usuario
-│       ├── MainFrame.lua       # Frame principal de alertas
-│       └── OptionsFrame.lua    # Panel de configuración
-└── Libs/
-```
-
-## 🎮 Comandos
-
-| Comando | Descripción |
+| Command | Description |
 |---------|-------------|
-| `/rca` | Abrir panel de opciones |
-| `/rca test` | Probar animación |
-| `/rca unlock` | Desbloquear para mover |
-| `/rca lock` | Bloquear posición |
-| `/rca status` | Mostrar estado del addon |
-| `/rca reset` | Resetear posición al centro |
+| `/rca` | Open configuration panel |
 
-## ⚙️ Configuración
+## Performance
 
-### Panel de Opciones (`/rca`)
+Ready Cooldown Alert is designed with performance in mind:
+- **Efficient OnUpdate loops** that only run when necessary
+- **Smart caching** of spell and item data
+- **Minimal memory footprint** with automatic cleanup
+- **CPU optimization** through conditional processing
+- **Modern WoW APIs** (C_Spell, C_Item, etc.) for better performance
 
-- **Fade In Time**: Tiempo de aparición (0-2s)
-- **Fade Out Time**: Tiempo de desaparición (0-2s)  
-- **Max Alpha**: Opacidad máxima (0-1)
-- **Animation Scale**: Escala de animación (0.5-3x)
-- **Icon Size**: Tamaño del icono (32-256px)
-- **Hold Time**: Tiempo de mantener visible (0-5s)
-- **Alert When**: Alertar X segundos antes (0-10s)
+## Compatibility
 
-### Sistema de Filtros
-
-- **Ignored Spells**: Lista de hechizos ignorados (separados por comas)
-- **Invert Filter**: Modo whitelist (solo mostrar los listados)
-- **Show Spell Names**: Mostrar nombres debajo del icono
-- **Pet Overlay**: Color personalizado para habilidades de mascota
-
-## 🔧 Flujo de Funcionamiento
-
-1. **Hooks** detectan cuando usas una habilidad
-2. **Data modules** obtienen información de APIs del juego  
-3. **Logic modules** procesan cooldowns y aplican filtros
-4. **UI modules** muestran animaciones visuales
-
-## 📊 Separación de Responsabilidades
-
-### Data Layer - Obtener Datos
-- `SpellData`: APIs de hechizos (`C_Spell.*`)
-- `ItemData`: APIs de items (`C_Item.*`, `C_Container.*`)
-- `PetData`: APIs de mascotas (`GetPetActionInfo`, etc.)
-- `CooldownData`: Coordinador que unifica todos los tipos
-
-### Hook Layer - Detectar Acciones  
-- `ActionHooks`: `UseAction`, `UseInventoryItem`, `UseContainerItem`
-- `SpellHooks`: `UNIT_SPELLCAST_SUCCEEDED`
-- `CombatHooks`: `COMBAT_LOG_EVENT_UNFILTERED` (mascotas)
-- `HookManager`: Coordinador central de eventos
-
-### Logic Layer - Procesar Datos
-- `CooldownProcessor`: Lógica de cuándo alertar (watching → cooldowns → animating)
-- `FilterProcessor`: Sistema whitelist/blacklist
-- `AnimationProcessor`: Control de fases de animación (fadeIn → hold → fadeOut)
-- `LogicManager`: Coordinador que conecta toda la lógica
-
-### UI Layer - Visualización
-- `MainFrame`: Frame de alertas con drag & drop
-- `OptionsFrame`: Panel de configuración completo
+- **World of Warcraft**: Retail
 
 
-## 🔄 Estados del Sistema
+## Problems
 
-### Tablas de Estado
-- **watching{}**: Buffer temporal (0.5s) para acciones recién detectadas
-- **cooldowns{}**: Cooldowns activos >2s siendo monitoreados  
-- **animating{}**: Cola de animaciones pendientes
+- If you encounter any issues, please check that the addon is up to date
+- For bugs or feature requests, please create an [issue](https://github.com/Jacuv01/Ready_Cooldown_Alert/issues)
 
-### Flujo de Estados
-```
-Usuario usa habilidad → Hook detecta → watching[] → 
-cooldown >2s → cooldowns[] → cooldown listo → animating[] → 
-animación visual → fin
-```
+## Support
 
-## 📈 Rendimiento
+By me beard! I'm just one lad who loves this grand world of Azeroth and enjoys crafting tools for our mighty community. If ye'd like to support me work and help me continue forging addons and features for fellow adventurers, buying me a coffee would warm me heart like a good ale by the forge! Your feedback and suggestions are worth more than gold in making this addon better for everyone, aye!
 
-- **Memoización** para evitar cálculos repetidos
-- **OnUpdate** solo activo cuando necesario
-- **APIs modernas** de WoW (C_Spell, C_Item, etc.)
-- **Cleanup automático** de memoria
+<a href="https://www.buymeacoffee.com/jacuv"><img src="https://img.buymeacoffee.com/button-api/?text=Buy me a coffee&emoji=☕&slug=jacuv&button_colour=5F7FFF&font_colour=ffffff&font_family=Cookie&outline_colour=000000&coffee_colour=FFDD00" /></a>
 
-## 🐛 Debug
 
-- Variable `ReadyCooldownAlertDB.debug = true` para logs detallados
-- Comando `/rca status` para información del estado
-- Separación modular facilita testing individual
+## Acknowledgments
 
-## 📝 Changelog
+This addon was inspired by [Doom_CooldownPulse](https://github.com/aduth/Doom_CooldownPulse) by aduth. While keeping the main idea of showing cooldown alerts, Ready Cooldown Alert was built from scratch with new features that I always wanted in a cooldown addon.
 
-### v1.0.0
-- ✅ Reescritura modular completa
-- ✅ Arquitectura separada en capas
-- ✅ Sistema de hooks mejorado  
-- ✅ Logic processors independientes
-- ✅ UI con mejor configuración
-- ✅ Soporte para APIs modernas de WoW
-- ✅ Sistema de comandos expandido
+---  
 
----
+## License
 
-**Autor**: Jacuv  
-**Licencia**: Ver LICENSE
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

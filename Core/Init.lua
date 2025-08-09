@@ -1,15 +1,11 @@
--- Ready Cooldown Alert - Inicializador Principal
 local addonName, addonTable = ...
 
--- Crear namespace global para el addon
 ReadyCooldownAlert = ReadyCooldownAlert or {}
 local RCA = ReadyCooldownAlert
 
--- Variables de estado
 RCA.isLoaded = false
 RCA.modules = {}
 
--- Frame principal para eventos
 local eventFrame = CreateFrame("Frame")
 local events = {
     "ADDON_LOADED",
@@ -23,7 +19,6 @@ for _, event in ipairs(events) do
     eventFrame:RegisterEvent(event)
 end
 
--- Configurar animaciones
 local function InitializeAnimationConfiguration()
     local OptionsLogic = rawget(_G, "OptionsLogic")
     if not ReadyCooldownAlertDB or not OptionsLogic then
@@ -35,7 +30,6 @@ local function InitializeAnimationConfiguration()
     OptionsLogic:LoadAnimationConfiguration(selectedAnimation)
 end
 
--- Inicializar SavedVariables por defecto
 local function InitializeDatabase()
     if not ReadyCooldownAlertDB then
         ReadyCooldownAlertDB = {}

@@ -82,7 +82,7 @@ function AnimationUtils:getAnimationFactories()
                 elseif phase == "hold" then
                     alpha = config.maxAlpha
                     scale = 1.0
-                else -- fadeOut
+                else
                     local fadeProgress = self:calculateFadeProgress(
                         phaseProgress, config.fadeOutTime
                     )

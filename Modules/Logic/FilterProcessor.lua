@@ -13,7 +13,7 @@ function FilterProcessor:RefreshFilters()
         
         local spellString = ReadyCooldownAlertDB.ignoredSpells
         for spellName in string.gmatch(spellString, "([^,]+)") do
-            local trimmedName = string.gsub(spellName, "^%s*(.-)%s*$", "%1") -- trim whitespace
+            local trimmedName = string.gsub(spellName, "^%s*(.-)%s*$", "%1")
             if trimmedName ~= "" then
                 ignoredSpells[trimmedName] = true
             end
