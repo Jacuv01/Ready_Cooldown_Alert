@@ -158,11 +158,17 @@ function LayoutManager:GetFiltersTabLayout()
             width = 60,
             height = 25
         },
+        helpNote = {
+            x = 20,
+            y = contentArea.startY - 52,
+            width = 360,
+            text = "Tip: If you can't find a spell in suggestions, try using its Spell ID instead"
+        },
         filtersList = {
             x = 20,
-            y = contentArea.startY - 60,
+            y = contentArea.startY - 75,
             width = 360,
-            height = 400,
+            height = 385,
             itemHeight = 25,
             spacing = 2
         },
@@ -170,12 +176,6 @@ function LayoutManager:GetFiltersTabLayout()
             x = 20,
             y = contentArea.startY - 480,
             width = 80,
-            height = 25
-        },
-        importExportButton = {
-            x = 110,
-            y = contentArea.startY - 480,
-            width = 100,
             height = 25
         },
         invertCheckbox = {
