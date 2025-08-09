@@ -4,7 +4,8 @@
 ## Author: Jacuv
 ## Version: 1.0.0
 ## SavedVariables: ReadyCooldownAlertDB
-## X-Curse-Project-ID: 
+## X-Curse-Project-ID: 1323755
+## X-Wago-ID: QKywoaN7
 
 # Core System
 Core\Init.lua
