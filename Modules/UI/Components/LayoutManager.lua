@@ -143,43 +143,44 @@ end
 
 function LayoutManager:GetFiltersTabLayout()
     local contentArea = self:GetTabContentArea()
+    local centerX = WINDOW_WIDTH / 2
     
     return {
         addInput = {
-            x = 20,
+            x = centerX - 155,
             y = contentArea.startY - 20,
             width = 250,
             height = 25,
             label = "Add Spell/Item (name or ID):"
         },
         addButton = {
-            x = 280,
+            x = centerX + 95,
             y = contentArea.startY - 20,
             width = 60,
             height = 25
         },
         helpNote = {
-            x = 20,
-            y = contentArea.startY - 52,
+            x = centerX - 155,
+            y = contentArea.startY - 50,
             width = 360,
             text = "Tip: If you can't find a spell in suggestions, try using its Spell ID instead"
         },
         filtersList = {
-            x = 20,
+            x = centerX - 180,
             y = contentArea.startY - 75,
-            width = 360,
+            width = 340,
             height = 385,
             itemHeight = 25,
             spacing = 2
         },
         clearAllButton = {
-            x = 20,
+            x = centerX - 180,
             y = contentArea.startY - 480,
             width = 80,
             height = 25
         },
         invertCheckbox = {
-            x = 20,
+            x = centerX - 180,
             y = contentArea.startY - 520
         }
     }
