@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 110200
 ## Title: Ready Cooldown Alert
 ## Notes: Alerts you when your abilities are ready to use.
 ## Author: Jacuv
