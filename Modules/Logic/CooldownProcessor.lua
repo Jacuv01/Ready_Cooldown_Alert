@@ -169,7 +169,7 @@ function CooldownProcessor:ProcessWatchedAction(id, watchData)
         local cooldownDetails = CooldownData:GetCooldownDetails(id, watchData.actionType, watchData.extraData)
         
         if cooldownDetails then
-            if FilterProcessor and FilterProcessor:ShouldFilter(cooldownDetails.name, id) then
+            if rawget(_G, "FilterProcessor") and rawget(_G, "FilterProcessor"):ShouldFilter(cooldownDetails.name, id) then
                 return
             end
             
