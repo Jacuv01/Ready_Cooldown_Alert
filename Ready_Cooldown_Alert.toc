@@ -42,6 +42,3 @@ Modules\UI\Components\ControlsManager.lua
 Modules\UI\Components\TabManager.lua
 Modules\UI\Components\FiltersUI.lua
 Modules\UI\OptionsFrame.lua
-
-# Test module (optional)
-test_structure.lua

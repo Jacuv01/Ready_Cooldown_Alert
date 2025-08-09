@@ -3,11 +3,11 @@ local LogicManager = {}
 -- Inicializar todos los módulos de lógica
 function LogicManager:Initialize()
     -- Obtener referencias a los módulos globales
-    local CooldownProcessor = _G.CooldownProcessor
-    local FilterProcessor = _G.FilterProcessor
-    local AnimationProcessor = _G.AnimationProcessor
-    local OptionsLogic = _G.OptionsLogic
-    
+    local CooldownProcessor = rawget(_G, "CooldownProcessor")
+    local FilterProcessor = rawget(_G, "FilterProcessor")
+    local AnimationProcessor = rawget(_G, "AnimationProcessor")
+    local OptionsLogic = rawget(_G, "OptionsLogic")
+
     -- Inicializar OptionsLogic
     if OptionsLogic then
         OptionsLogic:InitializeDefaultConfig()
@@ -33,11 +33,11 @@ function LogicManager:Initialize()
     end
     
     -- Conectar AnimationProcessor con MainFrame
-    if AnimationProcessor and _G.MainFrame then
+    if AnimationProcessor and rawget(_G, "MainFrame") then
 
         AnimationProcessor:RegisterUICallback(function(eventType, animationData)
 
-            _G.MainFrame:OnAnimationEvent(eventType, animationData)
+            rawget(_G, "MainFrame"):OnAnimationEvent(eventType, animationData)
         end)
     end
     
@@ -56,8 +56,8 @@ function LogicManager:ProcessAction(actionType, id, texture, extraData)
 
     
     -- Obtener referencia fresca al CooldownProcessor
-    local CooldownProcessor = _G.CooldownProcessor
-    
+    local CooldownProcessor = rawget(_G, "CooldownProcessor")
+
     if CooldownProcessor then
 
         CooldownProcessor:AddToWatching(actionType, id, texture, extraData)
@@ -68,7 +68,7 @@ end
 function LogicManager:OnPlayerEnteringWorld()
     -- Verificar si está en arena y limpiar todo
     local inArena = C_PvP.IsArena()
-    local CooldownProcessor = _G.CooldownProcessor
+    local CooldownProcessor = rawget(_G, "CooldownProcessor")
     if inArena and CooldownProcessor then
         CooldownProcessor:ClearAll()
     end
@@ -76,7 +76,7 @@ end
 
 function LogicManager:OnPlayerSpecializationChanged()
     -- Limpiar cooldowns al cambiar especialización
-    local CooldownProcessor = _G.CooldownProcessor
+    local CooldownProcessor = rawget(_G, "CooldownProcessor")
     if CooldownProcessor then
         CooldownProcessor:ClearCooldowns()
     end
@@ -89,7 +89,9 @@ end
 
 -- Obtener estado de todos los módulos
 function LogicManager:GetStatus()
-    local CooldownProcessor = _G.CooldownProcessor
+    local CooldownProcessor = rawget(_G, "CooldownProcessor")
+    local AnimationProcessor = rawget(_G, "AnimationProcessor")
+    local FilterProcessor = rawget(_G, "FilterProcessor")
     local status = {
         cooldownProcessor = CooldownProcessor and CooldownProcessor:GetStatus() or nil,
         animationProcessor = AnimationProcessor and AnimationProcessor:GetStatus() or nil,
