@@ -1,20 +1,16 @@
 local FilterProcessor = {}
 
--- Configuración de filtros
 local ignoredSpells = {}
 local invertIgnored = false
 
--- Inicializar filtros desde la configuración guardada
 function FilterProcessor:Initialize()
     self:RefreshFilters()
 end
 
--- Actualizar filtros desde SavedVariables
 function FilterProcessor:RefreshFilters()
     if ReadyCooldownAlertDB and ReadyCooldownAlertDB.ignoredSpells then
         ignoredSpells = {}
         
-        -- Parsear string de hechizos ignorados
         local spellString = ReadyCooldownAlertDB.ignoredSpells
         for spellName in string.gmatch(spellString, "([^,]+)") do
             local trimmedName = string.gsub(spellName, "^%s*(.-)%s*$", "%1") -- trim whitespace
@@ -27,31 +23,24 @@ function FilterProcessor:RefreshFilters()
     end
 end
 
--- Verificar si un hechizo/item debe ser filtrado
 function FilterProcessor:ShouldFilter(name, id)
     if not name then
         return false
     end
     
-    -- Verificar por nombre
     local isInList = ignoredSpells[name] ~= nil
     
-    -- Verificar por ID (convertido a string)
     if not isInList and id then
         isInList = ignoredSpells[tostring(id)] ~= nil
     end
     
-    -- Aplicar lógica de inversión
     if invertIgnored then
-        -- Si está invertido, filtrar todo EXCEPTO los de la lista
         return not isInList
     else
-        -- Normal: filtrar los que están en la lista
         return isInList
     end
 end
 
--- Añadir hechizo a la lista de ignorados
 function FilterProcessor:AddIgnoredSpell(name)
     if not name or name == "" then
         return false
@@ -62,7 +51,6 @@ function FilterProcessor:AddIgnoredSpell(name)
     return true
 end
 
--- Remover hechizo de la lista de ignorados
 function FilterProcessor:RemoveIgnoredSpell(name)
     if not name or not ignoredSpells[name] then
         return false
@@ -73,7 +61,6 @@ function FilterProcessor:RemoveIgnoredSpell(name)
     return true
 end
 
--- Obtener lista de hechizos ignorados como string
 function FilterProcessor:GetIgnoredSpellsString()
     local spellList = {}
     for name, _ in pairs(ignoredSpells) do
@@ -84,7 +71,6 @@ function FilterProcessor:GetIgnoredSpellsString()
     return table.concat(spellList, ", ")
 end
 
--- Establecer lista de hechizos ignorados desde string
 function FilterProcessor:SetIgnoredSpellsString(spellString)
     ignoredSpells = {}
     
@@ -100,19 +86,16 @@ function FilterProcessor:SetIgnoredSpellsString(spellString)
     self:SaveFilters()
 end
 
--- Alternar modo invertido
 function FilterProcessor:ToggleInvertIgnored()
     invertIgnored = not invertIgnored
     self:SaveFilters()
     return invertIgnored
 end
 
--- Obtener estado actual del modo invertido
 function FilterProcessor:IsInvertIgnored()
     return invertIgnored
 end
 
--- Guardar configuración de filtros
 function FilterProcessor:SaveFilters()
     if not ReadyCooldownAlertDB then
         ReadyCooldownAlertDB = {}
@@ -122,14 +105,12 @@ function FilterProcessor:SaveFilters()
     ReadyCooldownAlertDB.invertIgnored = invertIgnored
 end
 
--- Limpiar todos los filtros
 function FilterProcessor:ClearAllFilters()
     ignoredSpells = {}
     invertIgnored = false
     self:SaveFilters()
 end
 
--- Obtener estadísticas de filtros
 function FilterProcessor:GetFilterStats()
     local count = 0
     for _ in pairs(ignoredSpells) do
@@ -143,7 +124,6 @@ function FilterProcessor:GetFilterStats()
     }
 end
 
--- Exportar globalmente para WoW addon system
 _G.FilterProcessor = FilterProcessor
 
 return FilterProcessor
