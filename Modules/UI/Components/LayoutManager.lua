@@ -1,19 +1,29 @@
 local LayoutManager = {}
 
-local WINDOW_WIDTH = 400
-local WINDOW_HEIGHT = 900
-local BUTTON_HEIGHT = 25
-local BUTTON_WIDTH = 75
-local SLIDER_HEIGHT = 50
-local SECTION_SPACING = 40
-local TAB_HEIGHT = 30
-local TAB_WIDTH = 120
+local function GetUIConstants()
+    local OptionsFrame = rawget(_G, "OptionsFrame")
+    if OptionsFrame and OptionsFrame.GetConstants then
+        return OptionsFrame:GetConstants()
+    end
+    
+    return {
+        WINDOW_WIDTH = 400,
+        WINDOW_HEIGHT = 900,
+        BUTTON_HEIGHT = 25,
+        BUTTON_WIDTH = 75,
+        SLIDER_HEIGHT = 50,
+        SECTION_SPACING = 40,
+        TAB_HEIGHT = 30,
+        TAB_WIDTH = 120
+    }
+end
 
 function LayoutManager:GetTabsPosition()
+    local constants = GetUIConstants()
     return {
         startY = -30,
-        tabHeight = TAB_HEIGHT,
-        tabWidth = TAB_WIDTH,
+        tabHeight = constants.TAB_HEIGHT,
+        tabWidth = constants.TAB_WIDTH,
         spacing = 5,
         tabs = {
             {name = "General", key = "general"},
@@ -23,38 +33,42 @@ function LayoutManager:GetTabsPosition()
 end
 
 function LayoutManager:GetTabContentArea()
+    local constants = GetUIConstants()
     local tabsPos = self:GetTabsPosition()
     return {
-        startY = tabsPos.startY - TAB_HEIGHT - 10,
-        contentHeight = WINDOW_HEIGHT - 100
+        startY = tabsPos.startY - constants.TAB_HEIGHT - 10,
+        contentHeight = constants.WINDOW_HEIGHT - 100
     }
 end
 
 function LayoutManager:GetPositionSlidersPosition()
+    local constants = GetUIConstants()
     local contentArea = self:GetTabContentArea()
     return {
         startY = contentArea.startY,
-        sliderHeight = SLIDER_HEIGHT,
+        sliderHeight = constants.SLIDER_HEIGHT,
         sliderCount = 3
     }
 end
 
 function LayoutManager:GetPositionButtonPosition()
+    local constants = GetUIConstants()
     local positionSection = self:GetPositionSlidersPosition()
-    local sectionEndY = positionSection.startY - (positionSection.sliderCount * SLIDER_HEIGHT)
-    local buttonX = (WINDOW_WIDTH / 2) - (BUTTON_WIDTH / 2) - 20
+    local sectionEndY = positionSection.startY - (positionSection.sliderCount * constants.SLIDER_HEIGHT)
+    local buttonX = (constants.WINDOW_WIDTH / 2) - (constants.BUTTON_WIDTH / 2) - 20
     
     return {
         y = sectionEndY - 15,
         x = buttonX,
-        buttonWidth = BUTTON_WIDTH,
-        buttonHeight = BUTTON_HEIGHT
+        buttonWidth = constants.BUTTON_WIDTH,
+        buttonHeight = constants.BUTTON_HEIGHT
     }
 end
 
 function LayoutManager:GetShowSpellNamesCheckboxPosition()
+    local constants = GetUIConstants()
     local positionButtonPos = self:GetPositionButtonPosition()
-    local checkboxX = positionButtonPos.x + BUTTON_WIDTH + 20
+    local checkboxX = positionButtonPos.x + constants.BUTTON_WIDTH + 20
     
     return {
         y = positionButtonPos.y,
@@ -64,8 +78,9 @@ function LayoutManager:GetShowSpellNamesCheckboxPosition()
 end
 
 function LayoutManager:GetAnimationDropdownPosition()
+    local constants = GetUIConstants()
     local positionButtonPos = self:GetPositionButtonPosition()
-    local startY = positionButtonPos.y - BUTTON_HEIGHT - SECTION_SPACING
+    local startY = positionButtonPos.y - constants.BUTTON_HEIGHT - constants.SECTION_SPACING
     
     return {
         startY = startY,
@@ -74,34 +89,37 @@ function LayoutManager:GetAnimationDropdownPosition()
 end
 
 function LayoutManager:GetAnimationSlidersPosition(animationSliderCount)
+    local constants = GetUIConstants()
     local dropdownPos = self:GetAnimationDropdownPosition()
     local startY = dropdownPos.startY - 35
     
     return {
         startY = startY,
-        sliderHeight = SLIDER_HEIGHT,
+        sliderHeight = constants.SLIDER_HEIGHT,
         sliderCount = animationSliderCount
     }
 end
 
 function LayoutManager:GetAnimationButtonsPosition(animationSliderCount)
+    local constants = GetUIConstants()
     local slidersPos = self:GetAnimationSlidersPosition(animationSliderCount)
-    local sectionEndY = slidersPos.startY - (slidersPos.sliderCount * SLIDER_HEIGHT)
-    local totalButtonsWidth = (BUTTON_WIDTH * 3) + (10 * 2)
-    local startX = (WINDOW_WIDTH - totalButtonsWidth) / 2
+    local sectionEndY = slidersPos.startY - (slidersPos.sliderCount * constants.SLIDER_HEIGHT)
+    local totalButtonsWidth = (constants.BUTTON_WIDTH * 3) + (10 * 2)
+    local startX = (constants.WINDOW_WIDTH - totalButtonsWidth) / 2
     
     return {
         y = sectionEndY - 15,
         startX = startX,
-        buttonWidth = BUTTON_WIDTH,
-        buttonHeight = BUTTON_HEIGHT,
+        buttonWidth = constants.BUTTON_WIDTH,
+        buttonHeight = constants.BUTTON_HEIGHT,
         spacing = 10
     }
 end
 
 function LayoutManager:GetCheckboxesPosition(animationSliderCount)
+    local constants = GetUIConstants()
     local buttonsPos = self:GetAnimationButtonsPosition(animationSliderCount)
-    local startY = buttonsPos.y - BUTTON_HEIGHT - SECTION_SPACING
+    local startY = buttonsPos.y - constants.BUTTON_HEIGHT - constants.SECTION_SPACING
     
     return {
         startY = startY,
@@ -111,8 +129,9 @@ function LayoutManager:GetCheckboxesPosition(animationSliderCount)
 end
 
 function LayoutManager:GetEditBoxesPosition(animationSliderCount)
+    local constants = GetUIConstants()
     local buttonsPos = self:GetAnimationButtonsPosition(animationSliderCount)
-    local startY = buttonsPos.y - BUTTON_HEIGHT - SECTION_SPACING
+    local startY = buttonsPos.y - constants.BUTTON_HEIGHT - constants.SECTION_SPACING
     
     return {
         startY = startY,
@@ -129,21 +148,13 @@ function LayoutManager:GetMainButtonsPosition(sliderCount)
 end
 
 function LayoutManager:GetConstants()
-    return {
-        WINDOW_WIDTH = WINDOW_WIDTH,
-        WINDOW_HEIGHT = WINDOW_HEIGHT,
-        SLIDER_HEIGHT = SLIDER_HEIGHT,
-        BUTTON_HEIGHT = BUTTON_HEIGHT,
-        BUTTON_WIDTH = BUTTON_WIDTH,
-        SECTION_SPACING = SECTION_SPACING,
-        TAB_HEIGHT = TAB_HEIGHT,
-        TAB_WIDTH = TAB_WIDTH
-    }
+    return GetUIConstants()
 end
 
 function LayoutManager:GetFiltersTabLayout()
+    local constants = GetUIConstants()
     local contentArea = self:GetTabContentArea()
-    local centerX = WINDOW_WIDTH / 2
+    local centerX = constants.WINDOW_WIDTH / 2
     
     return {
         addInput = {
