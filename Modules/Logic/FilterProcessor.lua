@@ -15,7 +15,13 @@ function FilterProcessor:RefreshFilters()
         for spellName in string.gmatch(spellString, "([^,]+)") do
             local trimmedName = string.gsub(spellName, "^%s*(.-)%s*$", "%1")
             if trimmedName ~= "" then
-                ignoredSpells[trimmedName] = true
+                local name, id = string.match(trimmedName, "^(.+):(%d+)$")
+                if name and id then
+                    ignoredSpells[name] = true
+                    ignoredSpells[id] = true
+                else
+                    ignoredSpells[trimmedName] = true
+                end
             end
         end
         
@@ -34,11 +40,14 @@ function FilterProcessor:ShouldFilter(name, id)
         isInList = ignoredSpells[tostring(id)] ~= nil
     end
     
+    local shouldFilter = false
     if invertIgnored then
-        return not isInList
+        shouldFilter = not isInList
     else
-        return isInList
+        shouldFilter = isInList
     end
+    
+    return shouldFilter
 end
 
 function FilterProcessor:AddIgnoredSpell(name)
@@ -78,7 +87,13 @@ function FilterProcessor:SetIgnoredSpellsString(spellString)
         for spellName in string.gmatch(spellString, "([^,]+)") do
             local trimmedName = string.gsub(spellName, "^%s*(.-)%s*$", "%1")
             if trimmedName ~= "" then
-                ignoredSpells[trimmedName] = true
+                local name, id = string.match(trimmedName, "^(.+):(%d+)$")
+                if name and id then
+                    ignoredSpells[name] = true
+                    ignoredSpells[id] = true
+                else
+                    ignoredSpells[trimmedName] = true
+                end
             end
         end
     end
