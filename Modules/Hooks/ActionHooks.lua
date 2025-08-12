@@ -28,11 +28,13 @@ function ActionHooks:HookUseAction()
             local spellID = self:GetItemSpellID(itemID)
             local texture = GetActionTexture(slot)
             
-            self:TriggerCallbacks("item", itemID, texture, {
-                spellID = spellID,
-                slot = slot,
-                source = "actionbar"
-            })
+            if spellID then
+                local SpellHooks = rawget(_G, "SpellHooks")
+                if SpellHooks and SpellHooks.AddItemSpellMapping then
+                    SpellHooks:AddItemSpellMapping(spellID, itemID)
+                end
+            end
+            
         end
     end)
 end
@@ -45,11 +47,13 @@ function ActionHooks:HookUseInventoryItem()
             local spellID = self:GetItemSpellID(itemID)
             local texture = GetInventoryItemTexture("player", slot)
             
-            self:TriggerCallbacks("item", itemID, texture, {
-                spellID = spellID,
-                slot = slot,
-                source = "inventory"
-            })
+            if spellID then
+                local SpellHooks = rawget(_G, "SpellHooks")
+                if SpellHooks and SpellHooks.AddItemSpellMapping then
+                    SpellHooks:AddItemSpellMapping(spellID, itemID)
+                end
+            end
+            
         end
     end)
 end
@@ -61,12 +65,14 @@ function ActionHooks:HookUseContainerItem()
             local spellID = self:GetItemSpellID(itemID)
             local texture = C_Item.GetItemIconByID(itemID)
             
-            self:TriggerCallbacks("item", itemID, texture, {
-                spellID = spellID,
-                bag = bag,
-                slot = slot,
-                source = "container"
-            })
+            if spellID then
+                local SpellHooks = rawget(_G, "SpellHooks")
+                if SpellHooks and SpellHooks.AddItemSpellMapping then
+                    SpellHooks:AddItemSpellMapping(spellID, itemID)
+                end
+            end
+
+
         end
     end)
 end

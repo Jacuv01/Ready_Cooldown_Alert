@@ -2,7 +2,7 @@
 ## Title: Ready Cooldown Alert
 ## Notes: Alerts you when your abilities are ready to use.
 ## Author: Jacuv
-## Version: 1.0.2
+## Version: 1.0.3
 ## SavedVariables: ReadyCooldownAlertDB
 ## X-Curse-Project-ID: 1323755
 ## X-Wago-ID: QKywoaN7

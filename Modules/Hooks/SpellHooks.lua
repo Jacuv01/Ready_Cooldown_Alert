@@ -26,7 +26,7 @@ function SpellHooks:TriggerCallbacks(spellID, extraData)
     end
 end
 
--- TODO: check if this function is affecting trinket double alert
+
 function SpellHooks:AddItemSpellMapping(spellID, itemID)
     itemSpells[spellID] = itemID
 end
