@@ -149,6 +149,7 @@ function FiltersUI:CreateSuggestionsFrame()
         local icon = btn:CreateTexture(nil, "ARTWORK")
         icon:SetSize(16, 16)
         icon:SetPoint("LEFT", btn, "LEFT", 2, 0)
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         btn.icon = icon
         
         local text = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")

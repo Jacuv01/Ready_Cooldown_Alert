@@ -21,6 +21,7 @@ function MainFrame:Initialize()
     texture = frame:CreateTexture(nil, "BACKGROUND")
     texture:SetAllPoints(frame)
     texture:SetTexture(nil)
+    texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     
     textFrame = frame:CreateFontString(nil, "ARTWORK")
     textFrame:SetFont(STANDARD_TEXT_FONT, 14, "OUTLINE")
