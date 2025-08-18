@@ -55,7 +55,7 @@ function LayoutManager:GetPositionButtonPosition()
     local constants = GetUIConstants()
     local positionSection = self:GetPositionSlidersPosition()
     local sectionEndY = positionSection.startY - (positionSection.sliderCount * constants.SLIDER_HEIGHT)
-    local buttonX = (constants.WINDOW_WIDTH / 2) - (constants.BUTTON_WIDTH / 2) - 20
+    local buttonX = 30
     
     return {
         y = sectionEndY - 15,
@@ -68,7 +68,7 @@ end
 function LayoutManager:GetShowSpellNamesCheckboxPosition()
     local constants = GetUIConstants()
     local positionButtonPos = self:GetPositionButtonPosition()
-    local checkboxX = positionButtonPos.x + constants.BUTTON_WIDTH + 20
+    local checkboxX = positionButtonPos.x + constants.BUTTON_WIDTH + 60
     
     return {
         y = positionButtonPos.y,

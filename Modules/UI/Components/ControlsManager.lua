@@ -36,6 +36,36 @@ function ControlsManager:CreateCheckboxes(parentFrame, sliderCount)
     end)
     
     checkboxes.showSpellName = showNameCB
+    
+    local textureZoomCB = CreateFrame("CheckButton", "RCATextureZoomCheckbox", parentFrame, "ChatConfigCheckButtonTemplate")
+    textureZoomCB:SetPoint("TOPLEFT", position.x, position.y - 30)
+    textureZoomCB.Text:SetText("Enable Texture Zoom (Remove Dark Borders)")
+    
+    local enableTextureZoom = ReadyCooldownAlertDB and ReadyCooldownAlertDB.enableTextureZoom
+    if enableTextureZoom == nil then enableTextureZoom = true end
+    textureZoomCB:SetChecked(enableTextureZoom)
+    
+    textureZoomCB:SetScript("OnClick", function(self)
+        if ReadyCooldownAlertDB then
+            ReadyCooldownAlertDB.enableTextureZoom = self:GetChecked()
+            local OptionsFrame = rawget(_G, "OptionsFrame")
+            if OptionsFrame then
+                OptionsFrame:OnConfigChanged("enableTextureZoom", self:GetChecked())
+            end
+            
+            local MainFrame = rawget(_G, "MainFrame")
+            if MainFrame then
+                MainFrame:UpdateTextureZoom()
+            end
+            
+            local FiltersUI = rawget(_G, "FiltersUI")
+            if FiltersUI then
+                FiltersUI:UpdateAllSuggestionIcons()
+            end
+        end
+    end)
+    
+    checkboxes.enableTextureZoom = textureZoomCB
 end
 
 local function InitializeAnimationDropdown(self, level)
@@ -130,6 +160,13 @@ function ControlsManager:RefreshValues()
         local showSpellName = OptionsLogic and OptionsLogic:GetConfigValue("showSpellName")
         if showSpellName == nil then showSpellName = true end
         checkboxes.showSpellName:SetChecked(showSpellName and true or false)
+    end
+    
+    if checkboxes.enableTextureZoom then
+        local OptionsLogic = rawget(_G, "OptionsLogic")
+        local enableTextureZoom = OptionsLogic and OptionsLogic:GetConfigValue("enableTextureZoom")
+        if enableTextureZoom == nil then enableTextureZoom = true end
+        checkboxes.enableTextureZoom:SetChecked(enableTextureZoom and true or false)
     end
     
     if dropdowns.animationType then

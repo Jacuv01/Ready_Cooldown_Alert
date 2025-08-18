@@ -39,6 +39,7 @@ local function InitializeDatabase()
         selectedAnimation = "pulse",
         animationConfigs = {},
         showSpellName = true,
+        enableTextureZoom = true,
         ignoredSpells = "",
         invertIgnored = false,
         petOverlay = {1, 1, 1}

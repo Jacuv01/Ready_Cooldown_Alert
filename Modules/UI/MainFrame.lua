@@ -21,7 +21,7 @@ function MainFrame:Initialize()
     texture = frame:CreateTexture(nil, "BACKGROUND")
     texture:SetAllPoints(frame)
     texture:SetTexture(nil)
-    texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    self:UpdateTextureZoom()
     
     textFrame = frame:CreateFontString(nil, "ARTWORK")
     textFrame:SetFont(STANDARD_TEXT_FONT, 14, "OUTLINE")
@@ -262,6 +262,21 @@ function MainFrame:ResetPosition()
     if ReadyCooldownAlertDB then
         ReadyCooldownAlertDB.positionX = (GetScreenWidth() or 1920) / 2
         ReadyCooldownAlertDB.positionY = (GetScreenHeight() or 1080) / 2
+    end
+end
+
+function MainFrame:UpdateTextureZoom()
+    if not texture then
+        return
+    end
+    
+    local enableZoom = ReadyCooldownAlertDB and ReadyCooldownAlertDB.enableTextureZoom
+    if enableZoom == nil then enableZoom = false end
+    
+    if enableZoom then
+        texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    else
+        texture:SetTexCoord(0, 1, 0, 1)
     end
 end
 

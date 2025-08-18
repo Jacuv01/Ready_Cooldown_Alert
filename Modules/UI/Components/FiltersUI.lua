@@ -149,7 +149,7 @@ function FiltersUI:CreateSuggestionsFrame()
         local icon = btn:CreateTexture(nil, "ARTWORK")
         icon:SetSize(16, 16)
         icon:SetPoint("LEFT", btn, "LEFT", 2, 0)
-        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        self:UpdateSuggestionIconZoom(icon)
         btn.icon = icon
         
         local text = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
@@ -500,6 +500,34 @@ function FiltersUI:RefreshValues()
         invertCheckbox:SetChecked(ReadyCooldownAlertDB.invertIgnored)
     end
     self:RefreshFiltersList()
+end
+
+function FiltersUI:UpdateSuggestionIconZoom(icon)
+    if not icon then
+        return
+    end
+    
+    local enableZoom = ReadyCooldownAlertDB and ReadyCooldownAlertDB.enableTextureZoom
+    if enableZoom == nil then enableZoom = false end
+    
+    if enableZoom then
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    else
+        icon:SetTexCoord(0, 1, 0, 1)
+    end
+end
+
+function FiltersUI:UpdateAllSuggestionIcons()
+    if not suggestionButtons then
+        return
+    end
+    
+    for i = 1, #suggestionButtons do
+        local btn = suggestionButtons[i]
+        if btn and btn.icon then
+            self:UpdateSuggestionIconZoom(btn.icon)
+        end
+    end
 end
 
 _G.FiltersUI = FiltersUI
